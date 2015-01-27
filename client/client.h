@@ -7,8 +7,6 @@
 
 #include "data.h"
 
-#define SOCKET_BUFFER_SIZE 256
-
 typedef struct sockaddr 	sockaddr;
 typedef struct sockaddr_in 	sockaddr_in;
 typedef struct hostent 		hostent;
@@ -21,6 +19,11 @@ struct _Client {
 Client* Client_create();
 bool Client_run(Client* client, char* serverName, int serverPort);
 
-void Client_waitForId(Client* client);
+void Client_waitForPLID(Client* client);
+void Client_waitForELEC(Client* client);
+void Client_waitForRESP(Client* client);
+void Client_sendASKQ(Client* client, char* question, int nbAnswer, int goodAnswer, char** allAnswers);
+void Client_sendANSW(Client* client, int answer);
+
 
 #endif

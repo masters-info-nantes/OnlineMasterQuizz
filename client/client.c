@@ -43,8 +43,8 @@ bool Client_run(Client* client, char* serverName, int serverPort){
     return true;
 }
 
-void Client_waitForId(Client* client){
-    char buffer[SOCKET_BUFFER_SIZE];
+void Client_waitForPLID(Client* client){
+    char buffer[MAX_DATA_SIZE];
     DataType queryType = DataType_plid;
 
     if(read(client->socketID, buffer, queryType.fullSize) > queryType.fullSize){
@@ -56,7 +56,23 @@ void Client_waitForId(Client* client){
         perror("[Client/WaitForId] Server sent something different from player id\n");
         exit(1);
     }
-    printf("You are player #%d\n", atoi(response->content));  
+    printf("You are player #%d\n", atoi(response->content[0]));  
+}
+
+void Client_waitForELEC(Client* client){
+
+}
+
+void Client_waitForRESP(Client* client){
+
+}
+
+void Client_sendASKQ(Client* client, char* question, int nbAnswer, int goodAnswer, char** allAnswers){
+
+}
+
+void Client_sendANSW(Client* client, int answer){
+
 }
 
  /*  

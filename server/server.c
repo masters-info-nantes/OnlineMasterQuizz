@@ -95,10 +95,12 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     player->playerID = server->connectedPlayers; 
     player->networkDetails = clientInfos;
 
+    void* threadParams[2] = {player, server};
+
     // Create thread dedicated to the new client
     int threadCreated = pthread_create(&server->clientsThread[server->connectedPlayers], 
                                        NULL, Player_clientThread,
-                                       (void*)player
+                                       (void*)threadParams
     );
     if(threadCreated){
         perror("[Server/AddPlayer] Cannot create thread for new client\n");
@@ -109,4 +111,26 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     server->connectedPlayers++;
 
     Player_printClientInfos(player);  
+}
+
+void Server_sendPLID(Server* server, Player* player){
+    char buffer[SOCKET_BUFFER_SIZE] = { 0 };
+    sprintf(buffer, "%s,%d", "PLID", player->playerID + 1);
+    write(player->socketID, buffer, strlen(buffer) + 1);
+}
+
+void Server_sendELEC(Server* server){
+
+}
+
+void Server_sendRESP(Server* server, int answerID){
+
+}
+
+void Server_waitForASKQ(Server* client){
+
+}
+
+void Server_waitForANSW(Server* client){
+
 }

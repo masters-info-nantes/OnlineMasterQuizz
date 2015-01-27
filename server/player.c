@@ -5,14 +5,17 @@ void Player_printClientInfos(Player* player){
     printf("* Remote IP: %s\n\n", inet_ntoa(player->networkDetails->sin_addr));    
 }
 
-void* Player_clientThread (void* playerInfos) {
+void* Player_clientThread (void* params) {
 
-    Player* player = (Player*) playerInfos;
-    int clientSocket = player->socketID;
+    void** paramList = (void**) params;
+    Player* player = (Player*) paramList[0];
+    Server* server = (Server*) paramList[1];
 
-    char buffer[SOCKET_BUFFER_SIZE] = { 0 };
-    sprintf(buffer, "%s%d", "PLID", player->playerID + 1); // PLID: player identifier
-    write(clientSocket, buffer, strlen(buffer) + 1);
+    Server_sendPLID(server, player);
+
+    return NULL;
+}
+
 
 /*
     char buffer[256];
@@ -39,5 +42,3 @@ void* Player_clientThread (void* playerInfos) {
     printf("message envoye. \n");   
     close(clientSocket); 
 */
-    return NULL;
-}

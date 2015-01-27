@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
   
     // Search server informations
     if (argc != 3) {
-       perror("[Exit] Usage: client <serveur-ip> <server-port>\n");
+       perror("[Main] Usage: client <serveur-ip> <server-port>\n");
        exit(1);
     }
    
@@ -22,7 +22,5 @@ int main(int argc, char **argv) {
         exit(1);
     }
     
-    Client_waitForId(client);  
+    Client_waitForPLID(client);  
 }
-
-

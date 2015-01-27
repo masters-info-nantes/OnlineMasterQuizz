@@ -11,6 +11,7 @@
 #define SOCKET_BUFFER_SIZE 256
 
 typedef struct sockaddr_in sockaddr_in;
+typedef struct _Server Server;
 
 typedef struct _Player Player;
 struct _Player {
@@ -20,7 +21,7 @@ struct _Player {
 };
 
 // Keep void* func(void*) for thread function
-void* Player_clientThread(void* playerInfos);
+void* Player_clientThread(void* params);
 void Player_printClientInfos(Player* player);
 
 #endif
