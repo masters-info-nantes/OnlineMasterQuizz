@@ -2,7 +2,7 @@
 
 void printClientInfos(playerinfo* player){
     printf("* Remote port: %d\n", player->networkDetails->sin_port);
-    printf("* Remote IP: %s\n", inet_ntoa(player->networkDetails->sin_addr));    
+    printf("* Remote IP: %s\n\n", inet_ntoa(player->networkDetails->sin_addr));    
 }
 
 void* clientThread (void* playerInfos) {
@@ -10,9 +10,9 @@ void* clientThread (void* playerInfos) {
     playerinfo* player = (playerinfo*) playerInfos;
     int clientSocket = player->socketID;
 
-    char buffer[256];
-    sprintf(buffer, "%s%d", "PLID", player->playerID); // PLID: player identifier
-    write(clientSocket,buffer,strlen(buffer)+1);
+    char buffer[SOCKET_BUFFER_SIZE] = { 0 };
+    sprintf(buffer, "%s%d", "PLID", player->playerID + 1); // PLID: player identifier
+    write(clientSocket, buffer, strlen(buffer) + 1);
 
 /*
     char buffer[256];

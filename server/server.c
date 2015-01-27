@@ -18,7 +18,14 @@ int createSocket(int port);
 
 int main(int argc, char **argv) {
     
-    int socketID = createSocket(5000);
+    // Search server informations
+    if (argc != 2) {
+       perror("[Exit] Usage: server <port-to-listen>\n");
+       exit(1);
+    }
+
+    int port = atoi(argv[1]);
+    int socketID = createSocket(port);
     
     // Listen incoming connexions
     listen(socketID, QUEUE_MAX_LENGTH); 
@@ -41,7 +48,7 @@ int main(int argc, char **argv) {
                                                    &clientInfosSize
         );
         if (clientsSocketID[connectedPlayers] < 0) {
-            perror("[Exit] Cannot initiate connexion with a new client");
+            perror("[Exit] Cannot initiate connexion with a new client\n");
             exit(1);
         }
 
@@ -56,7 +63,7 @@ int main(int argc, char **argv) {
                                            (void*)player
         );
         if(threadCreated){
-            perror("[Exit] Cannot create thread for new client");
+            perror("[Exit] Cannot create thread for new client\n");
             exit(1);
         }
 
@@ -75,7 +82,7 @@ int createSocket(int port){
     // Get server informations from name
     hostent* serverInfos = gethostbyname((char*)serverName);
     if (serverInfos == NULL) {
-        perror("[Exit] Cannot find server from given hostname");
+        perror("[Exit] Cannot find server from given hostname\n");
         exit(1);
     }        
 
@@ -85,19 +92,19 @@ int createSocket(int port){
     socketInfos.sin_family       = serverInfos->h_addrtype;     /* ou AF_INET */
     socketInfos.sin_addr.s_addr  = INADDR_ANY;           /* ou AF_INET */
 
-    // Socket port configuration and creation
+    // Socket configuration and creation
     socketInfos.sin_port = htons(port);
-    printf("Listening on: %d\n\n", ntohs(socketInfos.sin_port));
+    printf("Listening on %d\n\n", ntohs(socketInfos.sin_port));
 
     int socketID = socket(AF_INET, SOCK_STREAM, 0);
     if (socketID < 0) {
-        perror("[Exit] Unable to create socket connexion");
+        perror("[Exit] Unable to create socket connexion\n");
         exit(1);
     }
 
     /* Bind socket identifier with its informations */
     if ((bind(socketID, (sockaddr*)(&socketInfos), sizeof(socketInfos))) < 0) {
-        perror("[Exit] Unable to bind connexion address with the socket");
+        perror("[Exit] Unable to bind connexion address with the socket\n");
         exit(1);
     }
 

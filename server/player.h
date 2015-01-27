@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define SOCKET_BUFFER_SIZE 256
+
 typedef struct sockaddr_in sockaddr_in;
 
 typedef struct _playerinfo playerinfo;

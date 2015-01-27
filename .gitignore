@@ -1,3 +1,4 @@
 a.out
 *.o
 server/server
+client/client
