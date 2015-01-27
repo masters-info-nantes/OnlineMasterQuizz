@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     pthread_t clientsThread[NUMBER_PLAYER_MAX];
     int connectedPlayers = 0;
 
-    sockaddr_in* clientInfos = NULL;
+    sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
   
     // Wait for new incoming connexions
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
             perror("[Exit] Cannot initiate connexion with a new client");
             exit(1);
         }
-        
+
         // Create thread dedicated to the new client
         playerinfo* player = malloc(sizeof(playerinfo));
         player->socketID = clientsSocketID[connectedPlayers];
