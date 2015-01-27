@@ -1,10 +1,11 @@
 CFLAGS=-g -Wall
 
 all: client
-client: client.o
+client: main.o client.o data.o
 
-#*.c: *.h
-#	@touch $@
+*.c: *.h
+	@touch $@
 
 clean:
 	rm -rf *.o client
+	

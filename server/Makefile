@@ -9,3 +9,4 @@ server: main.o player.o server.o
 
 clean:
 	rm -rf *.o server
+	
