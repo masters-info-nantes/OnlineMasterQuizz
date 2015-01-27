@@ -12,15 +12,15 @@
 
 typedef struct sockaddr_in sockaddr_in;
 
-typedef struct _playerinfo playerinfo;
-struct _playerinfo {
+typedef struct _Player Player;
+struct _Player {
     int socketID;
     int playerID;
     sockaddr_in* networkDetails;
 };
 
 // Keep void* func(void*) for thread function
-void* clientThread(void* playerInfos);
-void printClientInfos(playerinfo* player);
+void* Player_clientThread(void* playerInfos);
+void Player_printClientInfos(Player* player);
 
 #endif

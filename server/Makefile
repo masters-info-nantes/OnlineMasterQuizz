@@ -2,7 +2,7 @@ CFLAGS=-g -Wall
 LDLIBS=-lpthread
 
 all: server
-server: server.o player.o
+server: main.o player.o server.o
 
 *.c: *.h
 	@touch $@

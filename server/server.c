@@ -1,79 +1,30 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include "server.h"
 
-#include "player.h"
-#include <pthread.h>
+Server* Server_create(){
+	Server* server = (Server*) malloc(sizeof(Server));
+	
+	if(server){
+		server->socketID = -1;
+		server->connectedPlayers = 0;
 
-//#include <linux/types.h>  /* pour les sockets */
-//#include <i386/types.h>
+		server->players = calloc(MAX_PLAYERS, sizeof(Player*));
+		if(server->players){
+			server->clientsThread = calloc(MAX_PLAYERS, sizeof(pthread_t));
 
-#define HOSTNAME_MAX_LENGTH 256
-#define QUEUE_MAX_LENGTH 5
-#define NUMBER_PLAYER_MAX 5
-
-typedef struct sockaddr sockaddr;
-typedef struct hostent hostent;
-
-int createSocket(int port);
-
-int main(int argc, char **argv) {
-    
-    // Search server informations
-    if (argc != 2) {
-       perror("[Exit] Usage: server <port-to-listen>\n");
-       exit(1);
-    }
-
-    int port = atoi(argv[1]);
-    int socketID = createSocket(port);
-    
-    // Listen incoming connexions
-    listen(socketID, QUEUE_MAX_LENGTH); 
-
-    // Store clients sockets and threads
-    int clientsSocketID[NUMBER_PLAYER_MAX] = { -1 };
-    pthread_t clientsThread[NUMBER_PLAYER_MAX];
-    int connectedPlayers = 0;
-
-    sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
-    socklen_t clientInfosSize = sizeof(clientInfos);
-  
-    // Wait for new incoming connexions
-    for(;;) {
-    
-        // Get client socket
-        clientInfosSize = sizeof(clientInfos);
-        clientsSocketID[connectedPlayers] = accept(socketID, 
-                                                   (sockaddr*)clientInfos,
-                                                   &clientInfosSize
-        );
-        if (clientsSocketID[connectedPlayers] < 0) {
-            perror("[Exit] Cannot initiate connexion with a new client\n");
-            exit(1);
-        }
-
-        // Create thread dedicated to the new client
-        playerinfo* player = malloc(sizeof(playerinfo));
-        player->socketID = clientsSocketID[connectedPlayers];
-        player->playerID = connectedPlayers; 
-        player->networkDetails = clientInfos;
-
-        int threadCreated = pthread_create(&clientsThread[connectedPlayers], 
-                                           NULL, clientThread,
-                                           (void*)player
-        );
-        if(threadCreated){
-            perror("[Exit] Cannot create thread for new client\n");
-            exit(1);
-        }
-
-        connectedPlayers++;
-        printf("[Info] New client connected #%d\n", connectedPlayers); 
-        printClientInfos(player);  
-    } 
+			if(server->clientsThread == NULL){
+				free(server->players);
+				free(server);
+			}
+		}
+		else {
+			free(server);
+		}
+	}
+	
+	return server;
 }
 
-int createSocket(int port){
+bool Server_run(Server* server, int port){
 
     // Get local host name 
     char* serverName[HOSTNAME_MAX_LENGTH + 1] = { 0 };
@@ -82,8 +33,8 @@ int createSocket(int port){
     // Get server informations from name
     hostent* serverInfos = gethostbyname((char*)serverName);
     if (serverInfos == NULL) {
-        perror("[Exit] Cannot find server from given hostname\n");
-        exit(1);
+        perror("[Server/Run] Cannot find server from given hostname\n");
+        return false;
     }        
 
     // Fill socket infos with server infos
@@ -94,20 +45,68 @@ int createSocket(int port){
 
     // Socket configuration and creation
     socketInfos.sin_port = htons(port);
-    printf("Listening on %d\n\n", ntohs(socketInfos.sin_port));
+    printf("[Server/Run] Listening on %d\n\n", ntohs(socketInfos.sin_port));
 
-    int socketID = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketID < 0) {
-        perror("[Exit] Unable to create socket connexion\n");
-        exit(1);
+    server->socketID = socket(AF_INET, SOCK_STREAM, 0);
+    if (server->socketID < 0) {
+        perror("[Server/Run] Unable to create socket connexion\n");
+        return false;
     }
 
-    /* Bind socket identifier with its informations */
-    if ((bind(socketID, (sockaddr*)(&socketInfos), sizeof(socketInfos))) < 0) {
-        perror("[Exit] Unable to bind connexion address with the socket\n");
-        exit(1);
+    // Bind socket identifier with its informations
+    if ((bind(server->socketID, (sockaddr*)(&socketInfos), sizeof(socketInfos))) < 0) {
+        perror("[Server/Run] Unable to bind connexion address with the socket\n");
+        return false;
     }
 
-    return socketID;
+    // Listen incoming connexions
+    listen(server->socketID, QUEUE_MAX_LENGTH); 
+
+    return true;
 }
 
+void Server_waitForClients(Server* server){
+    sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
+    socklen_t clientInfosSize = sizeof(clientInfos);
+  
+    // Wait for new incoming connexions
+    for(;;) {
+    
+        clientInfosSize = sizeof(clientInfos);
+		int socketID = accept(server->socketID, (sockaddr*)clientInfos, &clientInfosSize);
+
+		if (socketID < 0) {
+		    perror("[Server/WaitForClients] Cannot initiate connexion with a new client\n");
+		    exit(1);
+		}
+
+        printf("[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
+		Server_addPlayer(server, socketID, clientInfos);
+    } 
+}
+
+void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
+    Player* player = malloc(sizeof(Player));
+    if(player == NULL){
+    	return;
+    }
+
+    player->socketID = socketID;
+    player->playerID = server->connectedPlayers; 
+    player->networkDetails = clientInfos;
+
+    // Create thread dedicated to the new client
+    int threadCreated = pthread_create(&server->clientsThread[server->connectedPlayers], 
+                                       NULL, Player_clientThread,
+                                       (void*)player
+    );
+    if(threadCreated){
+        perror("[Server/AddPlayer] Cannot create thread for new client\n");
+        exit(1);
+    }
+
+    server->players[server->connectedPlayers] = player;
+    server->connectedPlayers++;
+
+    Player_printClientInfos(player);  
+}

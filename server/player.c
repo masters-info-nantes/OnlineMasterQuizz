@@ -1,13 +1,13 @@
 #include "player.h"
 
-void printClientInfos(playerinfo* player){
+void Player_printClientInfos(Player* player){
     printf("* Remote port: %d\n", player->networkDetails->sin_port);
     printf("* Remote IP: %s\n\n", inet_ntoa(player->networkDetails->sin_addr));    
 }
 
-void* clientThread (void* playerInfos) {
+void* Player_clientThread (void* playerInfos) {
 
-    playerinfo* player = (playerinfo*) playerInfos;
+    Player* player = (Player*) playerInfos;
     int clientSocket = player->socketID;
 
     char buffer[SOCKET_BUFFER_SIZE] = { 0 };
