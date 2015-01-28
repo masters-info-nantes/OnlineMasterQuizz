@@ -11,9 +11,9 @@ lib%.so:
 lib%.dylib:
 	$(CC) -dynamiclib -install_name $(PWD)/$@ -current_version 1.0 $^ -o $@
 
-libmodel.a: data.o
-libmodel.so: data.o
-libmodel.dylib: data.o
+libmodel.a: datatype.o data.o question.o
+libmodel.so: datatype.o data.o question.o
+libmodel.dylib: datatype.o data.o question.o
 
 clean: 
 	rm -rf *.o *.a *.so *.dylib

@@ -69,7 +69,7 @@ void Server_waitForClients(Server* server){
     sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
   
-    // Wait for new incoming connexions
+    // Wait for new incoming connexions: change to LIMIT
     for(;;) {
     
         clientInfosSize = sizeof(clientInfos);
@@ -99,7 +99,7 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 
     // Create thread dedicated to the new client
     int threadCreated = pthread_create(&server->clientsThread[server->connectedPlayers], 
-                                       NULL, Player_clientThread,
+                                       NULL, Player_sendPLID,
                                        (void*)threadParams
     );
     if(threadCreated){
@@ -113,24 +113,46 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     Player_printClientInfos(player);  
 }
 
+void Server_electPlayer(Server* server){
+/*
+    // Use thread Player_sendToElected
+    Server_sendELEC(server, player, 1);
+    
+    for(;;){
+        // Use thread Player_sendELEC
+        Server_sendELEC(server, player, 0);
+    }
+*/
+}
+
+void Server_notifyGoodANSW(Server* server, Player* player){
+    // Stop all threads except caller
+    // Use thread Player_sendRESP(params);
+}
+
 void Server_sendPLID(Server* server, Player* player){
     char buffer[SOCKET_BUFFER_SIZE] = { 0 };
     sprintf(buffer, "%s,%d", "PLID", player->playerID + 1);
     write(player->socketID, buffer, strlen(buffer) + 1);
 }
 
-void Server_sendELEC(Server* server){
+void Server_sendELEC(Server* server, Player* player, bool elected){
 
 }
 
-void Server_sendRESP(Server* server, int answerID){
+void Server_sendRESP(Server* server, Player* player, int answerID){
 
 }
 
-void Server_waitForASKQ(Server* client){
+void Server_sendASKQtoAll(Server* server, Player* player, Question* question){
+    // Exclude elected player
+    // Use thread Player_sendASKQ
+}
+
+void Server_waitForASKQ(Server* server){
 
 }
 
-void Server_waitForANSW(Server* client){
+void Server_waitForANSW(Server* server, Player* player){
 
 }

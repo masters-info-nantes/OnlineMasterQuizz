@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <pthread.h>
+
 #include "player.h"
+#include "question.h"
 
 #define MAX_PLAYERS 5
 #define HOSTNAME_MAX_LENGTH 256
@@ -25,11 +27,15 @@ Server* Server_create();
 bool Server_run(Server* server, int port);
 void Server_waitForClients(Server* server);
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos);
+void Server_electPlayer(Server* server);
+void Server_notifyGoodANSW(Server* server, Player* player);
 
-void Server_sendPLID(Server* server, Player* player);
-void Server_sendELEC(Server* server);
-void Server_sendRESP(Server* server, int answerID);
-void Server_waitForASKQ(Server* client);
-void Server_waitForANSW(Server* client);
+void Server_sendPLID(Server* server, Player* player);  // Player to send id (contained in structure)
+void Server_sendELEC(Server* server, Player* player, bool elected);  // Player elec (send also to other)
+void Server_sendRESP(Server* server, Player* player, int answerID); // Send resp id to all and winner ID
+void Server_sendASKQtoAll(Server* server, Player* player, Question* question); // Send question to all players
+
+void Server_waitForDEFQ(Server* server); // After elec, wait for the question
+void Server_waitForANSW(Server* server, Player* player); // After ques, wait for player answer
 
 #endif

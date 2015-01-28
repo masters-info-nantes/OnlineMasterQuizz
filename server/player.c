@@ -5,7 +5,7 @@ void Player_printClientInfos(Player* player){
     printf("* Remote IP: %s\n\n", inet_ntoa(player->networkDetails->sin_addr));    
 }
 
-void* Player_clientThread (void* params) {
+void* Player_sendPLID (void* params) {
 
     void** paramList = (void**) params;
     Player* player = (Player*) paramList[0];
@@ -16,6 +16,40 @@ void* Player_clientThread (void* params) {
     return NULL;
 }
 
+void* Player_sendToElected(void* params){
+/*
+    Server_sendELEC(server, player);
+    Server_waitForDEFQ(server);
+    Server_sendASKQtoAll(server);
+*/
+    return NULL;
+}
+
+void* Player_sendELEC(void* params){
+// Server_sendELEC(server, player);
+
+    return NULL;
+}
+
+void* Player_sendASKQ(void* params){
+/*
+    Server_sendASKQ(server, question);
+
+    while(bad answer && other player don't win){
+        Server_waitForANSW(server, player);    
+
+        if(good anwser){
+            Server_notifyGoodANSW(server, player);
+        }
+    }
+*/
+    return NULL;
+}
+
+void* Player_sendRESP(void* params){
+//  Server_sendRESP(server, player, anwserID);
+    return NULL;
+}
 
 /*
     char buffer[256];

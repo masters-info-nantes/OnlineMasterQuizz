@@ -23,4 +23,20 @@ int main(int argc, char **argv) {
     }
     
     Client_waitForPLID(client);  
+
+/*
+    Client_waitForELEC(client);
+
+    if(elected){
+        Client_sendDEFQ(client, question);
+    }
+    else {
+        Client_waitForASKQ(client);
+        Client_waitForRESP(client); 
+
+        // Thread terminated if waitForRESP ends
+        Client_sendANSW(client, answer);        
+    }
+*/
+
 }

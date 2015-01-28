@@ -1,12 +1,5 @@
 #include "data.h"
 
-// Note: fullSize includes coma separator
-DataType DataType_plid = { "PLID", 2, DATA_TYPE_SIZE + 2 };
-DataType DataType_elec = { "ELEC", 2, DATA_TYPE_SIZE + 2 };
-DataType DataType_askq = { "ASKQ", 2, DATA_TYPE_SIZE + 2 };
-DataType DataType_answ = { "ANSW", 0, MAX_DATA_SIZE - DATA_TYPE_SIZE }; // 0 to calcul
-DataType DataType_resp = { "RESP", 2, DATA_TYPE_SIZE + 2 };
-
 Data* Data_create(int nbParts){
     
     Data* data = (Data*) malloc(sizeof(Data));

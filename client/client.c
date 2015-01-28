@@ -59,20 +59,24 @@ void Client_waitForPLID(Client* client){
     printf("You are player #%d\n", atoi(response->content[0]));  
 }
 
-void Client_waitForELEC(Client* client){
-
-}
-
-void Client_waitForRESP(Client* client){
-
-}
-
-void Client_sendASKQ(Client* client, char* question, int nbAnswer, int goodAnswer, char** allAnswers){
+void Client_sendDEFQ(Client* client, Question* question){
 
 }
 
 void Client_sendANSW(Client* client, int answer){
 
+}
+
+void Client_waitForELEC(Client* client){
+
+}
+
+void Client_waitForASKQ(Client* client){
+
+}
+
+void Client_waitForRESP(Client* client){
+    
 }
 
  /*  

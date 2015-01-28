@@ -7,7 +7,6 @@ LOADLIBES=-L../model
 all: lib client 
 
 client: main.o client.o
-
 lib:
 	cd ../model; make; echo
 

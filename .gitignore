@@ -1,4 +1,7 @@
 a.out
 *.o
+*.a
+*.so
+*.dylib
 server/server
 client/client
