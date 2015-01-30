@@ -12,39 +12,64 @@ struct _DataType
 #include "data.h"
 
 // Server send player identifier to client
-// Form: [PLID,4]
 //	 - player id: 4
-extern DataType DataType_plid;
+typedef struct _DataType_plid DataType_plid;
+struct _DataType_plid
+{
+   unsigned int playerId;  
+};
+
+// Server asks player the number of players (if=1, clients answers with numberOfPlayers)
+// Player choose the players number
+// - players number: 4
+typedef struct _DataType_pnum DataType_pnum;
+struct _DataType_pnum
+{
+   unsigned int numberOfPlayers;  
+};
 
 // Server elect a client for asking the next question
-// Form: [ELEC,0]
-//   - is elect: 0 (or 1)
-extern DataType DataType_elec;
+//   - is elected: 0 (or 1)
+typedef struct _DataType_elec DataType_elec;
+struct _DataType_elec
+{
+   bool elected;  
+};
 
 // Elected client send question to the server
-// Form: [DEFQ,2+2?,3,2,5,4,34]
-//	 - question: 2+2?
-//   - number of answers: 3
-//   - good answer: 2
-//   - all answers: 5, 4, 14
-extern DataType DataType_defq;
+//	 - question: "2+2?="
+//   - good answer: "4"
+typedef struct _DataType_defq DataType_defq;
+struct _DataType_defq
+{
+    char* question;
+    char* answer;
+};
 
 // Server send the question to all player except the elected one
-// Form: [ASKQ,2+2?,3,2,5,4,34]
-//	 - question: 2+2?
-//   - number of answers: 3
-//   - good answer: 2
-//   - all answers: 5, 4, 14
-extern DataType DataType_askq;
+//	 - question: "2+2?"
+typedef struct _DataType_askq DataType_askq;
+struct _DataType_askq
+{
+   char* question;  
+};
 
 // Client answer to the server question
-// Form: [ANSW,2]
-//   - answer id: 2
-extern DataType DataType_answ;
+//   - answer: "2"
+typedef struct _DataType_answ DataType_answ;
+struct _DataType_answ
+{
+   char* answer;  
+};
 
 // Server send response to all clients
-// Form: [RESP,2]
+//   - score: 100
 //   - good answer: 2
-extern DataType DataType_resp;
+typedef struct _DataType_resp DataType_resp;
+struct _DataType_resp
+{
+   char* answer;
+   unsigned int score;
+};
 
 #endif

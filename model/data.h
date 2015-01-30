@@ -13,7 +13,7 @@
 typedef struct _Data Data;
 struct _Data {
     char* type;
-    char** content;
+    void* dataType; //Structure defined in datatype.h
 };
 
 Data* Data_create(int nbParts);

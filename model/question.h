@@ -5,12 +5,8 @@
 
 typedef struct _Question Question;
 struct _Question{
-	char* title;
-	int nbAnswers;
-	char* goodAnswer; // Id from 0
-	char** allAnswers;
+	char* text;
+	char* goodAnswer;
 };
-
-Question* Question_create(int nbAnswers);
 
 #endif
