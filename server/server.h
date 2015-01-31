@@ -31,6 +31,7 @@ void Server_electPlayer(Server* server);
 void Server_notifyGoodANSW(Server* server, Player* player);
 
 void Server_sendPLID(Server* server, Player* player);  // Player to send id (contained in structure)
+void Server_sendPNUM(Server* server, Player* player, bool allowed); // Player allowed to set number of players
 void Server_sendELEC(Server* server, Player* player, bool elected);  // Player elec (send also to other)
 void Server_sendRESP(Server* server, Player* player, int answerID); // Send resp id to all and winner ID
 void Server_sendASKQtoAll(Server* server, Player* player, Question* question); // Send question to all players

@@ -107,6 +107,9 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
         exit(1);
     }
 
+    bool isFirstClient = (server->connectedPlayers == 0) ? true : false;
+    Server_sendPNUM(server, player, isFirstClient);
+
     server->players[server->connectedPlayers] = player;
     server->connectedPlayers++;
 
@@ -134,6 +137,10 @@ void Server_sendPLID(Server* server, Player* player){
     char buffer[SOCKET_BUFFER_SIZE] = { 0 };
     sprintf(buffer, "%s,%d", "PLID", player->playerID + 1);
     write(player->socketID, buffer, strlen(buffer) + 1);
+}
+
+void Server_sendPNUM(Server* server, Player* player, bool allowed){
+
 }
 
 void Server_sendELEC(Server* server, Player* player, bool elected){

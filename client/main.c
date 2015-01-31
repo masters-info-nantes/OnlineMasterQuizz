@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
     Client_waitForPLID(client);  
 
 /*
+    Client_waitForPNUM(client);
     Client_waitForELEC(client);
 
     if(elected){

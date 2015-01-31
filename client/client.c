@@ -44,6 +44,7 @@ bool Client_run(Client* client, char* serverName, int serverPort){
 }
 
 void Client_waitForPLID(Client* client){
+    /*
     char buffer[MAX_DATA_SIZE];
     DataType queryType = DataType_plid;
 
@@ -57,6 +58,11 @@ void Client_waitForPLID(Client* client){
         exit(1);
     }
     printf("You are player #%d\n", atoi(response->content[0]));  
+    */
+}
+
+void Client_waitForPNUM(Client* client){
+
 }
 
 void Client_sendDEFQ(Client* client, Question* question){

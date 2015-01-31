@@ -9,8 +9,6 @@ struct _DataType
 	int fullSize;
 };
 
-#include "data.h"
-
 // Server send player identifier to client
 //	 - player id: 4
 typedef struct _DataType_plid DataType_plid;
