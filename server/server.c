@@ -93,7 +93,7 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 
     player->socketID = socketID;
     player->playerID = server->connectedPlayers; 
-    player->networkDetails = clientInfos;
+    player->socketInfos = clientInfos;
 
     void* threadParams[2] = {player, server};
 
@@ -134,9 +134,39 @@ void Server_notifyGoodANSW(Server* server, Player* player){
 }
 
 void Server_sendPLID(Server* server, Player* player){
-    char buffer[SOCKET_BUFFER_SIZE] = { 0 };
+
+/*
+// Works
+    char buffer[256] = { 0 };
     sprintf(buffer, "%s,%d", "PLID", player->playerID + 1);
     write(player->socketID, buffer, strlen(buffer) + 1);
+*/
+
+    DataType_plid plid = { 4 };
+    int rcode = sendto(
+            server->socketID, 
+            &plid, 
+            sizeof(DataType_plid), 
+            0, 
+            (sockaddr*)player->socketInfos, 
+            sizeof(sockaddr_in)
+    );
+
+    printf(
+        "Socket desc: %d\nConnex type: %d\nOppenned port: %d\nIP adress: %s\n\n", 
+        server->socketID, 
+        player->socketInfos->sin_family, 
+        ntohs(player->socketInfos->sin_port), 
+        inet_ntoa(player->socketInfos->sin_addr)
+    );
+
+    if(rcode > 0){
+        printf("sendto succeed\nplid send ok\n");
+    }
+    else {
+        perror("sendto failed\n");
+        exit(1);  
+    }
 }
 
 void Server_sendPNUM(Server* server, Player* player, bool allowed){

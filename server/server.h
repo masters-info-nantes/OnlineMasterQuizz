@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 #include "player.h"
+#include "datatype.h"
 #include "question.h"
 
 #define MAX_PLAYERS 5

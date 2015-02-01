@@ -6,6 +6,11 @@ Client* Client_create(){
 
 	if(client){
 		client->socketID = -1;
+        client->socketInfos = (sockaddr_in*) malloc(sizeof(sockaddr_in));
+
+        if(client->socketInfos == NULL){
+            free(client);
+        }
 	}
 
 	return client;
@@ -18,15 +23,14 @@ bool Client_run(Client* client, char* serverName, int serverPort){
        perror("[Client/Run] Cannot find server from given hostname\n");
        return false;
     }
-    
+
     // Fill socket infos with server infos
-    sockaddr_in socketInfos;
-    bcopy((char*)serverInfos->h_addr, (char*)&socketInfos.sin_addr, serverInfos->h_length);
-    socketInfos.sin_family = AF_INET;
-    socketInfos.sin_port = htons(serverPort);
+    bcopy((char*)serverInfos->h_addr, (char*)&client->socketInfos->sin_addr, serverInfos->h_length);
+    client->socketInfos->sin_family = AF_INET;
+    client->socketInfos->sin_port = htons(serverPort);
 
     // Socket configuration and creation
-    printf("[Client/Run] Connect to server %s:%d\n", serverInfos->h_name ,ntohs(socketInfos.sin_port));
+    printf("[Client/Run] Connect to server %s:%d\n", serverInfos->h_name, ntohs(client->socketInfos->sin_port));
         
     client->socketID = socket(AF_INET, SOCK_STREAM, 0);
     if (client->socketID < 0) {
@@ -34,7 +38,7 @@ bool Client_run(Client* client, char* serverName, int serverPort){
         return false;
     }
     
-    if ((connect(client->socketID, (sockaddr*)(&socketInfos), sizeof(socketInfos))) < 0) {
+    if ((connect(client->socketID, (sockaddr*)(client->socketInfos), sizeof(sockaddr))) < 0) {
         perror("[Client/Run] Cannot connect to the server\n");
         return false;
     }
@@ -43,22 +47,45 @@ bool Client_run(Client* client, char* serverName, int serverPort){
     return true;
 }
 
+#include <arpa/inet.h>
 void Client_waitForPLID(Client* client){
-    /*
-    char buffer[MAX_DATA_SIZE];
-    DataType queryType = DataType_plid;
+/*
+// Works
+    char buffer[2000];
 
-    if(read(client->socketID, buffer, queryType.fullSize) > queryType.fullSize){
-    	perror("[Client/WaitForId] The maximum number of players on the server has been reached\n");
+    if(read(client->socketID, buffer, 256) < 0){
+        perror("[Client/WaitForId] The maximum number of players on the server has been reached\n");
     }
+    printf("%s\n", buffer);
+*/
 
-    Data* response = Data_convertFrom(DataType_plid, buffer);
-    if(response == NULL){
-        perror("[Client/WaitForId] Server sent something different from player id\n");
-        exit(1);
+    DataType_plid plid;
+    socklen_t len = sizeof(sockaddr_in);
+
+    int rcode = recvfrom(
+            client->socketID, 
+            &plid, 
+            sizeof(DataType_plid),
+            0, 
+            (sockaddr*)client->socketInfos,
+            &len
+    );
+
+    printf(
+        "Socket desc: %d\nConnex type: %d\nOppenned port: %d\nIP adress: %s\n\n", 
+        client->socketID, 
+        client->socketInfos->sin_family, 
+        ntohs(client->socketInfos->sin_port), 
+        inet_ntoa(client->socketInfos->sin_addr)
+    );
+
+    if(rcode > 0){
+        printf("recvfrom succeed\nYou are player #%d\n", plid.playerId); 
     }
-    printf("You are player #%d\n", atoi(response->content[0]));  
-    */
+    else {
+        perror("recvfrom failed\n");
+        exit(1);        
+    }
 }
 
 void Client_waitForPNUM(Client* client){

@@ -16,7 +16,7 @@ typedef struct _Player Player;
 struct _Player {
     int socketID;
     int playerID;
-    sockaddr_in* networkDetails;
+    sockaddr_in* socketInfos;
 };
 
 #include "server.h"

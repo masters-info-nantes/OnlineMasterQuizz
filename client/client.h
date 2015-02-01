@@ -20,6 +20,7 @@ typedef struct hostent 		hostent;
 typedef struct _Client Client;
 struct _Client {
 	int socketID;
+	sockaddr_in* socketInfos;
 };
 
 Client* Client_create();

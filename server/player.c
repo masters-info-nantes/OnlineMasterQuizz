@@ -1,8 +1,8 @@
 #include "player.h"
 
 void Player_printClientInfos(Player* player){
-    printf("* Remote port: %d\n", player->networkDetails->sin_port);
-    printf("* Remote IP: %s\n\n", inet_ntoa(player->networkDetails->sin_addr));    
+    printf("* Remote IP: %s\n", inet_ntoa(player->socketInfos->sin_addr));    
+    printf("* Remote port: %d\n\n", ntohs(player->socketInfos->sin_port));    
 }
 
 void* Player_sendPLID (void* params) {
