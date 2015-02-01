@@ -135,37 +135,14 @@ void Server_notifyGoodANSW(Server* server, Player* player){
 
 void Server_sendPLID(Server* server, Player* player){
 
-/*
-// Works
-    char buffer[256] = { 0 };
-    sprintf(buffer, "%s,%d", "PLID", player->playerID + 1);
-    write(player->socketID, buffer, strlen(buffer) + 1);
-*/
-
-    DataType_plid plid = { 4 };
-    int rcode = sendto(
-            server->socketID, 
-            &plid, 
-            sizeof(DataType_plid), 
-            0, 
-            (sockaddr*)player->socketInfos, 
-            sizeof(sockaddr_in)
-    );
-
-    printf(
-        "Socket desc: %d\nConnex type: %d\nOppenned port: %d\nIP adress: %s\n\n", 
-        server->socketID, 
-        player->socketInfos->sin_family, 
-        ntohs(player->socketInfos->sin_port), 
-        inet_ntoa(player->socketInfos->sin_addr)
-    );
-
-    if(rcode > 0){
-        printf("sendto succeed\nplid send ok\n");
-    }
-    else {
-        perror("sendto failed\n");
-        exit(1);  
+    DataType_plid plid = { player->playerID + 1 }; // No zero player in display for client
+    int dataSize = sizeof(plid);
+    
+    if(write(player->socketID, &plid, dataSize) > dataSize){
+        char message[256];
+        sprintf(message, "[Server/SendPLID] Cannot send player id to player #%d", player->playerID);
+        perror(message);
+        exit(1);
     }
 }
 

@@ -49,43 +49,15 @@ bool Client_run(Client* client, char* serverName, int serverPort){
 
 #include <arpa/inet.h>
 void Client_waitForPLID(Client* client){
-/*
-// Works
-    char buffer[2000];
-
-    if(read(client->socketID, buffer, 256) < 0){
-        perror("[Client/WaitForId] The maximum number of players on the server has been reached\n");
-    }
-    printf("%s\n", buffer);
-*/
 
     DataType_plid plid;
-    socklen_t len = sizeof(sockaddr_in);
+    int dataSize = sizeof(plid);
 
-    int rcode = recvfrom(
-            client->socketID, 
-            &plid, 
-            sizeof(DataType_plid),
-            0, 
-            (sockaddr*)client->socketInfos,
-            &len
-    );
-
-    printf(
-        "Socket desc: %d\nConnex type: %d\nOppenned port: %d\nIP adress: %s\n\n", 
-        client->socketID, 
-        client->socketInfos->sin_family, 
-        ntohs(client->socketInfos->sin_port), 
-        inet_ntoa(client->socketInfos->sin_addr)
-    );
-
-    if(rcode > 0){
-        printf("recvfrom succeed\nYou are player #%d\n", plid.playerId); 
+    if(read(client->socketID, &plid, dataSize) > dataSize){
+        perror("[Client/WaitForId] The maximum number of players on the server has been reached\n");
     }
-    else {
-        perror("recvfrom failed\n");
-        exit(1);        
-    }
+
+    printf("You are player #%d\n", plid.playerId); 
 }
 
 void Client_waitForPNUM(Client* client){
