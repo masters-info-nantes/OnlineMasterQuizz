@@ -133,17 +133,53 @@ void Server_notifyGoodANSW(Server* server, Player* player){
     // Use thread Player_sendRESP(params);
 }
 
+void printr(int a){
+    if(a > 0){
+        printf("send succeed\nplid send ok\n");
+    }
+    else {
+        perror("send failed\n");
+
+        //char message[256];
+        //sprintf(message, "[Server/SendPLID] Cannot send player id to player #%d", player->playerID);
+        //perror(message);
+
+        exit(1);  
+    } 
+}
 void Server_sendPLID(Server* server, Player* player){
 
-    DataType_plid plid = { player->playerID + 1 }; // No zero player in display for client
-    int dataSize = sizeof(plid);
-    
-    if(write(player->socketID, &plid, dataSize) > dataSize){
-        char message[256];
-        sprintf(message, "[Server/SendPLID] Cannot send player id to player #%d", player->playerID);
-        perror(message);
-        exit(1);
-    }
+    // Display socket infos
+    printf(
+        "Socket desc: %d\nConnex type: %d\nOppenned port: %d\nIP adress: %s\n\n", 
+        server->socketID, 
+        player->socketInfos->sin_family, 
+        ntohs(player->socketInfos->sin_port), 
+        inet_ntoa(player->socketInfos->sin_addr)
+    );
+
+    // Send data over socket connection
+    //DataType_plid plid = { player->playerID + 1 }; // No zero player in display for client
+    DataType_resp plid = { "test", 46 };
+
+//    printr(write(player->socketID, &plid, sizeof(plid)));
+
+    printr(send(
+            server->socketID, 
+            &plid, 
+            sizeof(plid), 
+            0
+    ));
+/*
+    printr(sendto(
+            server->socketID, 
+            &plid, 
+            sizeof(plid), 
+            0, 
+            (sockaddr*)player->socketInfos, 
+            sizeof(sockaddr_in)
+    ));
+*/
 }
 
 void Server_sendPNUM(Server* server, Player* player, bool allowed){
