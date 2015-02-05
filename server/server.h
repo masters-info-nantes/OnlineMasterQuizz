@@ -19,9 +19,12 @@ typedef struct hostent hostent;
 typedef struct _Server Server;
 struct _Server {
 	int socketID;
+
 	Player** players;
     pthread_t* clientsThread;
+
     int connectedPlayers;
+    int maxPlayers;
 };
 
 Server* Server_create();
@@ -37,6 +40,7 @@ void Server_sendELEC(Server* server, Player* player, bool elected);  // Player e
 void Server_sendRESP(Server* server, Player* player, int answerID); // Send resp id to all and winner ID
 void Server_sendASKQtoAll(Server* server, Player* player, Question* question); // Send question to all players
 
+void Server_waitForPNUM(Server* server, Player* player); 
 void Server_waitForDEFQ(Server* server); // After elec, wait for the question
 void Server_waitForANSW(Server* server, Player* player); // After ques, wait for player answer
 

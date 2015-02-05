@@ -6,6 +6,7 @@ Server* Server_create(){
 	if(server){
 		server->socketID = -1;
 		server->connectedPlayers = 0;
+        server->maxPlayers = 2;
 
 		server->players = calloc(MAX_PLAYERS, sizeof(Player*));
 		if(server->players){
@@ -45,13 +46,26 @@ bool Server_run(Server* server, int port){
 
     // Socket configuration and creation
     socketInfos.sin_port = htons(port);
-    printf("[Server/Run] Listening on %d\n\n", ntohs(socketInfos.sin_port));
+    printf("[Server/Run] Listening on %d\n", ntohs(socketInfos.sin_port));
 
     server->socketID = socket(AF_INET, SOCK_STREAM, 0);
     if (server->socketID < 0) {
         perror("[Server/Run] Unable to create socket connexion\n");
         return false;
     }
+
+    // Set timeout options
+    /*
+    struct timeval timeout;      
+    timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
+
+    if (setsockopt(server->socketID, SOL_SOCKET, SO_RCVTIMEO, 
+            (char *)&timeout, sizeof(timeout)) < 0){
+        perror("[Server/Run] Unable set timeout option for client socket\n");
+        return false;
+    }
+    */
 
     // Bind socket identifier with its informations
     if ((bind(server->socketID, (sockaddr*)(&socketInfos), sizeof(socketInfos))) < 0) {
@@ -69,8 +83,8 @@ void Server_waitForClients(Server* server){
     sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
   
-    // Wait for new incoming connexions: change to LIMIT
-    for(;;) {
+    while(server->connectedPlayers < server->maxPlayers 
+            && server->connectedPlayers < 2) {
     
         clientInfosSize = sizeof(clientInfos);
 		int socketID = accept(server->socketID, (sockaddr*)clientInfos, &clientInfosSize);
@@ -80,7 +94,6 @@ void Server_waitForClients(Server* server){
 		    exit(1);
 		}
 
-        printf("[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
 		Server_addPlayer(server, socketID, clientInfos);
     } 
 }
@@ -102,17 +115,16 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
                                        NULL, Player_sendPLID,
                                        (void*)threadParams
     );
+
     if(threadCreated){
         perror("[Server/AddPlayer] Cannot create thread for new client\n");
         exit(1);
     }
 
-    bool isFirstClient = (server->connectedPlayers == 0) ? true : false;
-    Server_sendPNUM(server, player, isFirstClient);
-
     server->players[server->connectedPlayers] = player;
     server->connectedPlayers++;
 
+    printf("\n[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
     Player_printClientInfos(player);  
 }
 
@@ -134,16 +146,29 @@ void Server_notifyGoodANSW(Server* server, Player* player){
 }
 
 void Server_sendPLID(Server* server, Player* player){
-    DataType_plid plid = { player->playerID + 1 }; // No zero player in display for client
-    //DataType_resp plid = { 23, true, "test", 46 };
+    DataType_plid plid = { player->playerID + 1 }; 
 
-    if(write(player->socketID, &plid, sizeof(plid)) > 0){
-
+    if(write(player->socketID, &plid, sizeof(plid)) <= 0){
+        char message[500];
+        sprintf(message, "Cannot send plid to player #%d", player->playerID + 1);
+        perror(message);
+        exit(0);
     }
+     
+    printf("> PLID sent to player #%d\n", player->playerID);
 }
 
 void Server_sendPNUM(Server* server, Player* player, bool allowed){
+    DataType_pnum pnum = { allowed }; 
 
+    if(write(player->socketID, &pnum, sizeof(pnum)) <= 0){
+        char message[500];
+        sprintf(message, "Cannot send pnum to player #%d", player->playerID + 1);
+        perror(message);
+        exit(0);
+    }
+     
+    printf("> PNUM %s sent to player #%d\n", (allowed) ? "authorization" : "not authorized", player->playerID);
 }
 
 void Server_sendELEC(Server* server, Player* player, bool elected){
@@ -157,6 +182,22 @@ void Server_sendRESP(Server* server, Player* player, int answerID){
 void Server_sendASKQtoAll(Server* server, Player* player, Question* question){
     // Exclude elected player
     // Use thread Player_sendASKQ
+}
+
+void Server_waitForPNUM(Server* server, Player* player){
+    DataType_pnum pnum;
+
+    int readSize = -1;
+    while((readSize = read(player->socketID, &pnum, sizeof(pnum))) == 0);
+
+    if(readSize < 0){
+        char message[500];
+        sprintf(message, "PNUM received is malformed\n");
+        perror(message);
+        exit(0);
+    }
+
+    printf("PNUM set to %d\n", pnum.numberOfPlayers);
 }
 
 void Server_waitForASKQ(Server* server){

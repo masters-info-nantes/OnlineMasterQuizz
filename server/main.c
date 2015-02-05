@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     Server_waitForClients(server);
     
     while(true){
-        Server_electPlayer(server);          
+        Server_electPlayer(server);         
         // while(threads running);      
     }
 }

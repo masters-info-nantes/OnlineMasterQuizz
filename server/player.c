@@ -13,6 +13,13 @@ void* Player_sendPLID (void* params) {
 
     Server_sendPLID(server, player);
 
+    bool isFirstClient = (player->playerID == 0) ? true : false;
+    Server_sendPNUM(server, player, isFirstClient);
+
+    if(isFirstClient){
+        Server_waitForPNUM(server, player);
+    }
+
     return NULL;
 }
 
