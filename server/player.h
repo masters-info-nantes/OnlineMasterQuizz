@@ -23,7 +23,6 @@ struct _Player {
 
 // Keep void* func(void*) for thread function
 void* Player_sendPLID(void* params);
-void* Player_sendToElected(void* params);
 void* Player_sendELEC(void* params);
 void* Player_sendASKQ(void* params);
 void* Player_sendRESP(void* params);

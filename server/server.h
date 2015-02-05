@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "player.h"
 #include "datatype.h"

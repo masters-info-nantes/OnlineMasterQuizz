@@ -21,6 +21,8 @@ Server* Server_create(){
 			free(server);
 		}
 	}
+
+    srand(time(NULL)); // For real random
 	
 	return server;
 }
@@ -96,6 +98,9 @@ void Server_waitForClients(Server* server){
 
 		Server_addPlayer(server, socketID, clientInfos);
     } 
+    
+    printf("> No places left for this turn !\n\n");
+    Server_electPlayer(server);
 }
 
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
@@ -129,15 +134,29 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 }
 
 void Server_electPlayer(Server* server){
-/*
-    // Use thread Player_sendToElected
-    Server_sendELEC(server, player, 1);
+
+    int electedID = rand() % (server->connectedPlayers - 1);
+
+    for(int i = 0; i < server->connectedPlayers; i++){
+        Player* currentPlayer = server->players[i];
+        bool elected = (i == electedID) ? true : false;
+
+        printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (elected) ? "" : " not");
     
-    for(;;){
-        // Use thread Player_sendELEC
-        Server_sendELEC(server, player, 0);
+        void* threadParams[3] = { currentPlayer, server, &elected };
+        int threadCreated = pthread_create(&server->clientsThread[i], 
+                                           NULL, Player_sendELEC,
+                                           (void*)threadParams
+        );
+
+        if(threadCreated){
+            char message[500];
+            sprintf(message, "[Server/ElectPlayer] Cannot create thread for client election #%d\n", currentPlayer->playerID + 1);
+            perror(message);        
+            exit(1);
+        }
+        sleep(1); // See to fix troubles with variables allocations !!!!!!!
     }
-*/
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
@@ -150,12 +169,12 @@ void Server_sendPLID(Server* server, Player* player){
 
     if(write(player->socketID, &plid, sizeof(plid)) <= 0){
         char message[500];
-        sprintf(message, "Cannot send plid to player #%d", player->playerID + 1);
+        sprintf(message, "[Server/SendPLID] Cannot send plid to player #%d", player->playerID + 1);
         perror(message);
         exit(0);
     }
      
-    printf("> PLID sent to player #%d\n", player->playerID);
+    printf("> PLID sent to player #%d\n", player->playerID + 1);
 }
 
 void Server_sendPNUM(Server* server, Player* player, bool allowed){
@@ -163,30 +182,27 @@ void Server_sendPNUM(Server* server, Player* player, bool allowed){
 
     if(write(player->socketID, &pnum, sizeof(pnum)) <= 0){
         char message[500];
-        sprintf(message, "Cannot send pnum to player #%d", player->playerID + 1);
+        sprintf(message, "[Server/SendPNUM] Cannot send pnum to player #%d", player->playerID + 1);
         perror(message);
         exit(0);
     }
      
-    printf("> PNUM %s sent to player #%d\n", (allowed) ? "authorization" : "not authorized", player->playerID);
+    printf("> PNUM %s sent to player #%d\n", (allowed) ? "authorization" : "not authorized", player->playerID + 1);
 }
 
 void Server_sendELEC(Server* server, Player* player, bool elected)
-{
-    ////////////////////////////
-    // For mocking reasons!!! //
-    ////////////////////////////
-    
-    DataType_elec elec;
-    elec.elected = elected;
+{    
+    DataType_elec elec = { elected };
+
     if(write(player->socketID, &elec, sizeof(elec)) <= 0){
         char message[500];
-        sprintf(message, "Cannot send elec to player #%d", player->playerID + 1);
+        sprintf(message, "[Server/SendELEC] Cannot send elec to player #%d", player->playerID + 1);
         perror(message);
         exit(0);
     }
-    printf("player %d elected to select the question!",player->playerID);
-    Server_waitForDEFQ(server,player);
+
+    printf("> Player #%d has%s been elected to ask the question\n", player->playerID + 1, (elected) ? "" : " not");
+    // Server_waitForDEFQ(server,player);
 }
 
 void Server_sendRESP(Server* server, Player* player, int answerID){
@@ -211,13 +227,7 @@ void Server_waitForPNUM(Server* server, Player* player){
         exit(0);
     }
 
-    printf("PNUM set to %d\n", pnum.numberOfPlayers);
-    
-    ///////////////////////////
-    // For mocking reason!!! //
-    ///////////////////////////
-    
-    Server_sendELEC(server,player,1);
+    printf("> PNUM set to %d\n", pnum.numberOfPlayers);
 }
 
     ///////////////////////////

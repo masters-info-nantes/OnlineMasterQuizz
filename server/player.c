@@ -23,18 +23,20 @@ void* Player_sendPLID (void* params) {
     return NULL;
 }
 
-void* Player_sendToElected(void* params){
-/*
-    Server_sendELEC(server, player);
-    Server_waitForDEFQ(server);
-    Server_sendASKQtoAll(server);
-*/
-    return NULL;
-}
-
 void* Player_sendELEC(void* params){
-// Server_sendELEC(server, player);
+    void** paramList = (void**) params;
+    Player* player = (Player*) paramList[0];
+    Server* server = (Server*) paramList[1];
+    bool elected = *((bool*)paramList[2]);
 
+    Server_sendELEC(server, player, elected);
+
+/*
+    if(elected){
+        Server_waitForDEFQ(server);
+        Server_sendASKQtoAll(server);
+    }
+*/
     return NULL;
 }
 
