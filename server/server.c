@@ -171,8 +171,22 @@ void Server_sendPNUM(Server* server, Player* player, bool allowed){
     printf("> PNUM %s sent to player #%d\n", (allowed) ? "authorization" : "not authorized", player->playerID);
 }
 
-void Server_sendELEC(Server* server, Player* player, bool elected){
-
+void Server_sendELEC(Server* server, Player* player, bool elected)
+{
+    ////////////////////////////
+    // For mocking reasons!!! //
+    ////////////////////////////
+    
+    DataType_elec elec;
+    elec.elected = elected;
+    if(write(player->socketID, &elec, sizeof(elec)) <= 0){
+        char message[500];
+        sprintf(message, "Cannot send elec to player #%d", player->playerID + 1);
+        perror(message);
+        exit(0);
+    }
+    printf("player %d elected to select the question!",player->playerID);
+    Server_waitForDEFQ(server,player);
 }
 
 void Server_sendRESP(Server* server, Player* player, int answerID){
@@ -198,9 +212,26 @@ void Server_waitForPNUM(Server* server, Player* player){
     }
 
     printf("PNUM set to %d\n", pnum.numberOfPlayers);
+    
+    ///////////////////////////
+    // For mocking reason!!! //
+    ///////////////////////////
+    
+    Server_sendELEC(server,player,1);
 }
 
-void Server_waitForASKQ(Server* server){
+    ///////////////////////////
+    // For mocking reason!!! //
+    ///////////////////////////
+void Server_waitForDEFQ(Server* server,Player* player){
+        DataType_defq defq;
+    if(read(player->socketID, &defq, sizeof(defq)) > 0){
+        printf("Question recieved!\n");
+        printf("%s \n",defq.question);
+        printf("%s \n",defq.answer);
+    }
+}
+void Server_waitForASKQ(Server* server,Player* player){
 
 }
 

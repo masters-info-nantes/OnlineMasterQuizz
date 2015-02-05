@@ -80,12 +80,21 @@ void Client_sendPNUM(Client* client, int playerCount)
     DataType_pnum pnum;
     pnum.numberOfPlayers=playerCount;
     if ((write(client->socketID, &pnum, sizeof(pnum))) > 0) {
-	   printf("number of players sent \n");
+        printf("number of players sent \n");
+        Client_waitForELEC(client);
     }
     
 }
 void Client_sendDEFQ(Client* client, Question* question){
-
+    DataType_defq defq;
+    //defq.question = question->text;
+    strcpy(defq.question,question->text);
+    strcpy(defq.answer,question->goodAnswer);
+    //defq.answer = question->goodAnswer;
+    if ((write(client->socketID, &defq, sizeof(defq))) > 0) {
+        printf("Your question has been sent! \n");
+        Client_waitForRESP(client);
+    }
 }
 
 void Client_sendANSW(Client* client, int answer){
@@ -93,15 +102,32 @@ void Client_sendANSW(Client* client, int answer){
 }
 
 void Client_waitForELEC(Client* client){
-    printf("Wait for Elec...");
+    DataType_elec elec;
+
+    if(read(client->socketID, &elec, sizeof(elec)) > 0){
+        if(elec.elected==1)
+        {
+            printf("You are elected to choose the question! \n");
+            printf("What's your question? \n");
+            Question question;
+            scanf("%s",question.text);
+            printf("What's the correct answer? \n");
+            scanf("%s",question.goodAnswer);
+            Client_sendDEFQ(client,&question);
+        }
+        else
+        {
+            Client_waitForASKQ(client);
+        }     
+    } 
 }
 
 void Client_waitForASKQ(Client* client){
-
+    printf("Wait for question...\n");
 }
 
 void Client_waitForRESP(Client* client){
-    
+    printf("Waiting for other players to answer...\n");
 }
 
  /*  

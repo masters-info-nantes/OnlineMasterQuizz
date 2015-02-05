@@ -41,7 +41,7 @@ void Server_sendRESP(Server* server, Player* player, int answerID); // Send resp
 void Server_sendASKQtoAll(Server* server, Player* player, Question* question); // Send question to all players
 
 void Server_waitForPNUM(Server* server, Player* player); 
-void Server_waitForDEFQ(Server* server); // After elec, wait for the question
+void Server_waitForDEFQ(Server* server,Player* player); // After elec, wait for the question
 void Server_waitForANSW(Server* server, Player* player); // After ques, wait for player answer
 
 #endif
