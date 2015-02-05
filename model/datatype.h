@@ -1,13 +1,7 @@
 #ifndef __DATATYPE_H__
 #define __DATATYPE_H__
 
-typedef struct _DataType DataType;
-struct _DataType
-{
-	char* name;
-	int nbParts;
-	int fullSize;
-};
+#define MAX_CHAR_LENGTH 256
 
 // Server send player identifier to client
 //	 - player id: 4
@@ -40,8 +34,8 @@ struct _DataType_elec
 typedef struct _DataType_defq DataType_defq;
 struct _DataType_defq
 {
-    char* question;
-    char* answer;
+   char question[MAX_CHAR_LENGTH];
+   char answer[MAX_CHAR_LENGTH];
 };
 
 // Server send the question to all player except the elected one
@@ -49,7 +43,7 @@ struct _DataType_defq
 typedef struct _DataType_askq DataType_askq;
 struct _DataType_askq
 {
-   char* question;  
+   char question[MAX_CHAR_LENGTH];
 };
 
 // Client answer to the server question
@@ -57,7 +51,7 @@ struct _DataType_askq
 typedef struct _DataType_answ DataType_answ;
 struct _DataType_answ
 {
-   char* answer;  
+   char answer[MAX_CHAR_LENGTH]; 
 };
 
 // Server send response to all clients
@@ -66,7 +60,7 @@ struct _DataType_answ
 typedef struct _DataType_resp DataType_resp;
 struct _DataType_resp
 {
-   char* answer;
+   char answer[MAX_CHAR_LENGTH];
    unsigned int score;
 };
 

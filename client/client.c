@@ -47,53 +47,13 @@ bool Client_run(Client* client, char* serverName, int serverPort){
     return true;
 }
 
-#include <arpa/inet.h>
-void printr(int a, DataType_resp plid){
-    if(a > 0){
-        printf("answer %s\n", plid.answer); 
-        printf("score %d\n", plid.score); 
-        perror("recv succeed\n");        
-    }
-    else {
-        perror("recv failed\n");
-        exit(1);        
-    }
-}
 void Client_waitForPLID(Client* client){
+    DataType_plid plid;
 
-    // Display socket infos
-    printf(
-        "Socket desc: %d\nConnex type: %d\nOppenned port: %d\nIP adress: %s\n\n", 
-        client->socketID, 
-        client->socketInfos->sin_family, 
-        ntohs(client->socketInfos->sin_port), 
-        inet_ntoa(client->socketInfos->sin_addr)
-    );
+    if(read(client->socketID, &plid, sizeof(plid)) > 0){
+        printf("PlayerID %u\n", plid.playerId); 
 
-    // Receive data over socket connection    
-    //DataType_plid plid;
-    DataType_resp plid;
-
-    //printr(read(client->socketID, &plid, sizeof(plid)), plid);
-
-
-    printr(recv(
-            client->socketID, 
-            &plid, 
-            sizeof(plid),
-            0
-    ), plid);
-/*
-    socklen_t size = sizeof(sockaddr_in);
-    printr(recvfrom(
-            client->socketID, 
-            &plid, 
-            sizeof(plid),
-            0, 
-            (sockaddr*)client->socketInfos,
-            &size
-    ), plid); 
-*/   
+    }  
 }
 
 void Client_waitForPNUM(Client* client){
