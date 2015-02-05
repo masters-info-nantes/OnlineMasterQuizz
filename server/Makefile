@@ -1,5 +1,6 @@
 CFLAGS=-g -Wall
 CPPFLAGS=-I../model
+LDLIBS=-lpthread
 
 all: server
 server: main.o player.o server.o

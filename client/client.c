@@ -52,14 +52,38 @@ void Client_waitForPLID(Client* client){
 
     if(read(client->socketID, &plid, sizeof(plid)) > 0){
         printf("PlayerID %u\n", plid.playerId); 
-
+        Client_waitForPNUM(client);
     }  
 }
 
 void Client_waitForPNUM(Client* client){
+    DataType_pnum pnum;
 
+    if(read(client->socketID, &pnum, sizeof(pnum)) > 0){
+        if(pnum.numberOfPlayers==1)
+        {
+            printf("You are the first player! \n");
+            printf("How many players do you want for this game? \n");
+            int number;
+            scanf("%d",&number);
+            Client_sendPNUM(client,number);
+        }
+        else
+        {
+            Client_waitForELEC(client);
+        }     
+    }  
 }
 
+void Client_sendPNUM(Client* client, int playerCount)
+{
+    DataType_pnum pnum;
+    pnum.numberOfPlayers=playerCount;
+    if ((write(client->socketID, &pnum, sizeof(pnum))) > 0) {
+	   printf("number of players sent \n");
+    }
+    
+}
 void Client_sendDEFQ(Client* client, Question* question){
 
 }
@@ -69,7 +93,7 @@ void Client_sendANSW(Client* client, int answer){
 }
 
 void Client_waitForELEC(Client* client){
-
+    printf("Wait for Elec...");
 }
 
 void Client_waitForASKQ(Client* client){
