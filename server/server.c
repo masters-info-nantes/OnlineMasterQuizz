@@ -6,7 +6,8 @@ Server* Server_create(){
 	if(server){
 		server->socketID = -1;
 		server->connectedPlayers = 0;
-        server->maxPlayers = 2;
+        server->maxPlayers = 1;
+        server->electedPlayer = NULL;
 
 		server->players = calloc(MAX_PLAYERS, sizeof(Player*));
 		if(server->players){
@@ -85,8 +86,7 @@ void Server_waitForClients(Server* server){
     sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
   
-    while(server->connectedPlayers < server->maxPlayers 
-            && server->connectedPlayers < 2) {
+    while(server->connectedPlayers < server->maxPlayers) {
     
         clientInfosSize = sizeof(clientInfos);
 		int socketID = accept(server->socketID, (sockaddr*)clientInfos, &clientInfosSize);
@@ -97,6 +97,11 @@ void Server_waitForClients(Server* server){
 		}
 
 		Server_addPlayer(server, socketID, clientInfos);
+
+        // Wait for PNUM from the first player
+        if(server->connectedPlayers == 1){
+            while(server->maxPlayers == 1);
+        }
     } 
     
     printf("> No places left for this turn !\n\n");
@@ -138,15 +143,16 @@ void Server_electPlayer(Server* server){
 
     for(int i = 0; i < server->connectedPlayers; i++){
         Player* currentPlayer = server->players[i];
-        bool* elected = (bool*) malloc(sizeof(bool));
-        *elected = (i == electedID) ? true : false;
 
-        printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (*elected) ? "" : " not");
+        if(i == electedID){
+            server->electedPlayer = server->players[electedID];
+        }
+
+        // printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (i == electedID) ? "" : " not");
     
-        void** threadParams = (void**) calloc(3, sizeof(void*));
+        void** threadParams = (void**) calloc(2, sizeof(void*));
         threadParams[0] = currentPlayer;
         threadParams[1] = server;
-        threadParams[2] = elected;
 
         int threadCreated = pthread_create(&server->clientsThread[i], 
                                            NULL, Player_sendELEC,
@@ -161,7 +167,7 @@ void Server_electPlayer(Server* server){
         }
     }
 
-    Server_waitForDEFQ(server, server->players[electedID]);
+    Server_waitForDEFQ(server);
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
@@ -207,16 +213,50 @@ void Server_sendELEC(Server* server, Player* player, bool elected)
     }
 
     printf("> Player #%d has%s been elected to ask the question\n", player->playerID + 1, (elected) ? "" : " not");
-    // Server_waitForDEFQ(server,player);
 }
 
 void Server_sendRESP(Server* server, Player* player, int answerID){
 
 }
 
-void Server_sendASKQtoAll(Server* server, Player* player, Question* question){
-    // Exclude elected player
-    // Use thread Player_sendASKQ
+void Server_sendASKQtoAll(Server* server){
+    for(int i = 0; i < server->connectedPlayers; i++){
+        Player* currentPlayer = server->players[i];
+        
+        if(currentPlayer->playerID == server->electedPlayer->playerID){
+            continue;
+        }
+
+        void** threadParams = (void**) calloc(2, sizeof(void*));
+        threadParams[0] = currentPlayer;
+        threadParams[1] = server;
+
+        int threadCreated = pthread_create(&server->clientsThread[i], 
+                                           NULL, Player_sendASKQ,
+                                           (void*)threadParams
+        );
+
+        if(threadCreated){
+            char message[500];
+            sprintf(message, "[Server/ElectPlayer] Cannot create thread for client send question #%d\n", currentPlayer->playerID + 1);
+            perror(message);        
+            exit(1);
+        }
+    }
+}
+
+void Server_sendASKQ(Server* server, Player* player){
+    DataType_askq askq;
+    strcpy(askq.question, server->currentQuestion->text);
+
+    if(write(player->socketID, &askq, sizeof(askq)) <= 0){
+        char message[500];
+        sprintf(message, "[Server/SendELEC] Cannot send question to player #%d", player->playerID + 1);
+        perror(message);
+        exit(0);
+    }
+
+    printf("> Question sent to player #%d\n", player->playerID + 1);
 }
 
 void Server_waitForPNUM(Server* server, Player* player){
@@ -234,15 +274,16 @@ void Server_waitForPNUM(Server* server, Player* player){
         exit(0);
     }
 
-    printf("> PNUM set to %d\n", pnum.numberOfPlayers);
+    server->maxPlayers = pnum.numberOfPlayers;
+    printf("> PNUM set to %d\n", server->maxPlayers);
 }
 
-void Server_waitForDEFQ(Server* server,Player* player){
-    printf("> Wait for DEFQ from #%d...\n", player->playerID + 1);
+void Server_waitForDEFQ(Server* server){
+    printf("> Wait for DEFQ from #%d...\n", server->electedPlayer->playerID + 1);
     DataType_defq defq;
     
     int readSize = -1;
-    while((readSize = read(player->socketID, &defq, sizeof(defq))) == 0);
+    while((readSize = read(server->electedPlayer->socketID, &defq, sizeof(defq))) == 0);
 
     if(readSize < 0){
         char message[500];
@@ -251,10 +292,17 @@ void Server_waitForDEFQ(Server* server,Player* player){
         exit(0);
     }
 
-    printf("> DEFQ received from #%d:\n", player->playerID);
-    printf(">  * Question: \"%s\"\n", defq.question);
-    printf(">  * Answer: \"%s\"\n", defq.answer);
+    server->currentQuestion = (Question*) malloc(sizeof(Question));
+    strcpy(server->currentQuestion->text, defq.question);
+    strcpy(server->currentQuestion->goodAnswer, defq.answer);
+
+    printf("> DEFQ received from #%d:\n", server->electedPlayer->playerID + 1);
+    printf(">  * Question: \"%s\"\n", server->currentQuestion->text);
+    printf(">  * Answer: \"%s\"\n", server->currentQuestion->goodAnswer);
+
+    Server_sendASKQtoAll(server);
 }
+
 void Server_waitForASKQ(Server* server,Player* player){
 
 }

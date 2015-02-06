@@ -27,8 +27,8 @@ void* Player_sendELEC(void* params){
     void** paramList = (void**) params;
     Player* player = (Player*) paramList[0];
     Server* server = (Server*) paramList[1];
-    bool elected = *((bool*) paramList[2]);
 
+    bool elected = (server->electedPlayer != NULL && player->playerID == server->electedPlayer->playerID);
     Server_sendELEC(server, player, elected);
 
 /*
@@ -37,16 +37,18 @@ void* Player_sendELEC(void* params){
         Server_sendASKQtoAll(server);
     }
 */
-    free(paramList[2]);
     free(params);
 
     return NULL;
 }
 
 void* Player_sendASKQ(void* params){
-/*
-    Server_sendASKQ(server, question);
+    void** paramList = (void**) params;
+    Player* player = (Player*) paramList[0];
+    Server* server = (Server*) paramList[1];
 
+    Server_sendASKQ(server, player);
+/*
     while(bad answer && other player don't win){
         Server_waitForANSW(server, player);    
 
@@ -55,6 +57,8 @@ void* Player_sendASKQ(void* params){
         }
     }
 */
+    free(params);
+    
     return NULL;
 }
 

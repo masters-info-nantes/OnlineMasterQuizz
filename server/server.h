@@ -24,6 +24,9 @@ struct _Server {
 	Player** players;
     pthread_t* clientsThread;
 
+    Player* electedPlayer;	
+    Question* currentQuestion;
+
     int connectedPlayers;
     int maxPlayers;
 };
@@ -39,10 +42,11 @@ void Server_sendPLID(Server* server, Player* player);  // Player to send id (con
 void Server_sendPNUM(Server* server, Player* player, bool allowed); // Player allowed to set number of players
 void Server_sendELEC(Server* server, Player* player, bool elected);  // Player elec (send also to other)
 void Server_sendRESP(Server* server, Player* player, int answerID); // Send resp id to all and winner ID
-void Server_sendASKQtoAll(Server* server, Player* player, Question* question); // Send question to all players
+void Server_sendASKQ(Server* server, Player* player);
+void Server_sendASKQtoAll(Server* server); // Send question to all players
 
 void Server_waitForPNUM(Server* server, Player* player); 
-void Server_waitForDEFQ(Server* server,Player* player); // After elec, wait for the question
+void Server_waitForDEFQ(Server* server); // After elec, wait for the question
 void Server_waitForANSW(Server* server, Player* player); // After ques, wait for player answer
 
 #endif
