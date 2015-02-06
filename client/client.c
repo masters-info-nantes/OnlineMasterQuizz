@@ -81,6 +81,7 @@ void Client_sendPNUM(Client* client, int playerCount)
     pnum.numberOfPlayers=playerCount;
     if ((write(client->socketID, &pnum, sizeof(pnum))) > 0) {
         printf("number of players sent \n");
+        printf("waiting for other players to connect... \n");
         Client_waitForELEC(client);
     }
     
@@ -97,8 +98,14 @@ void Client_sendDEFQ(Client* client, Question* question){
     }
 }
 
-void Client_sendANSW(Client* client, int answer){
-
+void Client_sendANSW(Client* client, char answer[256])
+{
+    DataType_answ answ;
+    strcpy(answ.answer,answer);
+    if ((write(client->socketID, &answ, sizeof(answ))) > 0) {
+            printf("Answer sent!\n");
+        Client_waitForRESP(client);
+    }
 }
 
 void Client_waitForELEC(Client* client){
@@ -124,37 +131,24 @@ void Client_waitForELEC(Client* client){
 
 void Client_waitForASKQ(Client* client){
     printf("Wait for question...\n");
+    DataType_askq askq;
+
+    if(read(client->socketID, &askq, sizeof(askq)) > 0){
+        printf("Question: %s \n",askq.question);
+        printf("Your Answer: ");
+        char answer[256];
+        scanf("%s",answer);
+        Client_sendANSW(client,answer);
+    }
 }
 
 void Client_waitForRESP(Client* client){
     printf("Waiting for other players to answer...\n");
+    DataType_resp resp;
+
+    if(read(client->socketID, &resp, sizeof(resp)) > 0){
+        printf("Good answer: %s \n",resp.answer);
+        printf("Your points: %d \n",resp.score);
+        Client_waitForELEC(client);
+    }
 }
-
- /*  
-    printf("envoi d'un message au serveur. \n");
-      
-    if ((write(socket_descriptor, mesg, strlen(mesg))) < 0) {
-	perror("erreur : impossible d'ecrire le message destine au serveur.");
-	exit(1);
-    }
-    
-
-    sleep(3);
-     
-    printf("message envoye au serveur. \n");
-                
-
-    while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
-	printf("reponse du serveur : \n");
-	write(1,buffer,longueur);
-    }
-    
-    printf("\nfin de la reception.\n");
-    
-    close(socket_descriptor);
-    
-    printf("connexion avec le serveur fermee, fin du programme.\n");
-    
-    exit(0);
- */ 
-    
