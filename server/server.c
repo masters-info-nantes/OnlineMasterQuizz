@@ -303,10 +303,20 @@ void Server_waitForDEFQ(Server* server){
     Server_sendASKQtoAll(server);
 }
 
-void Server_waitForASKQ(Server* server,Player* player){
-
-}
-
 void Server_waitForANSW(Server* server, Player* player){
+    printf("> Wait for ANSW from #%d...\n", player->playerID + 1);
+    DataType_answ answ;
+    
+    int readSize = -1;
+    while((readSize = read(player->socketID, &answ, sizeof(answ))) == 0);
 
+    if(readSize < 0){
+        char message[500];
+        sprintf(message, "ANSW received is malformed\n");
+        perror(message);
+        exit(0);
+    }
+
+    printf("> ANSW received from #%d:\n", player->playerID);
+    printf(">  \"%s\"\n", answ.answer);
 }

@@ -31,12 +31,11 @@ void* Player_sendELEC(void* params){
     bool elected = (server->electedPlayer != NULL && player->playerID == server->electedPlayer->playerID);
     Server_sendELEC(server, player, elected);
 
-/*
-    if(elected){
-        Server_waitForDEFQ(server);
-        Server_sendASKQtoAll(server);
+
+    if(!elected){
+        Server_waitForANSW(server, player);
     }
-*/
+
     free(params);
 
     return NULL;
