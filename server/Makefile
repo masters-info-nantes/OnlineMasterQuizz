@@ -1,4 +1,4 @@
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -std=c99
 CPPFLAGS=-I../model
 LDLIBS=-lpthread
 

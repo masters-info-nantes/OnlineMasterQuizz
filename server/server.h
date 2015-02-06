@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <pthread.h>
 #include <time.h>
 

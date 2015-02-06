@@ -43,7 +43,7 @@ bool Server_run(Server* server, int port){
 
     // Fill socket infos with server infos
     sockaddr_in socketInfos;
-    bcopy((char*)serverInfos->h_addr, (char*)&socketInfos.sin_addr, serverInfos->h_length);
+    bcopy((char*)serverInfos->h_addr_list[0], (char*)&socketInfos.sin_addr, serverInfos->h_length);
     socketInfos.sin_family       = serverInfos->h_addrtype;     /* ou AF_INET */
     socketInfos.sin_addr.s_addr  = INADDR_ANY;           /* ou AF_INET */
 
