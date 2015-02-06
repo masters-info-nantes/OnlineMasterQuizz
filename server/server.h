@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include <pthread.h>
 #include <time.h>
 
@@ -49,5 +50,7 @@ void Server_sendASKQtoAll(Server* server); // Send question to all players
 void Server_waitForPNUM(Server* server, Player* player); 
 void Server_waitForDEFQ(Server* server); // After elec, wait for the question
 void Server_waitForANSW(Server* server, Player* player); // After ques, wait for player answer
+
+int Server_levenshteinDistance(char word1[256],char word2[256]);
 
 #endif

@@ -28,7 +28,7 @@ Client* Client_create();
 bool Client_run(Client* client, char* serverName, int serverPort);
 
 void Client_sendDEFQ(Client* client, Question* question); // After elec, send question if elec = 1
-void Client_sendANSW(Client* client, int answer); // After askq, send answer if not elected
+void Client_sendANSW(Client* client, char answer[256]); // After askq, send answer if not elected
 void Client_sendPNUM(Client* client, int playersCount);  // If first player, choose how many player in the game
 
 void Client_waitForPLID(Client* client); // Wait player identifier
