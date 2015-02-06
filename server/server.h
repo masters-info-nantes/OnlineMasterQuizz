@@ -38,6 +38,7 @@ void Server_waitForClients(Server* server);
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos);
 void Server_electPlayer(Server* server);
 void Server_notifyGoodANSW(Server* server, Player* player);
+void Server_waitForGoodAnswers(Server* server);
 
 void Server_sendPLID(Server* server, Player* player);  // Player to send id (contained in structure)
 void Server_sendPNUM(Server* server, Player* player, bool allowed); // Player allowed to set number of players

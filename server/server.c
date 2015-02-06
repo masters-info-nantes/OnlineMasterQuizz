@@ -320,3 +320,9 @@ void Server_waitForANSW(Server* server, Player* player){
     printf("> ANSW received from #%d:\n", player->playerID);
     printf(">  \"%s\"\n", answ.answer);
 }
+
+void Server_waitForGoodAnswers(Server* server){
+    for(int i = 0; i < server->connectedPlayers; i++){
+        pthread_join(server->clientsThread[i], NULL);
+    }
+}

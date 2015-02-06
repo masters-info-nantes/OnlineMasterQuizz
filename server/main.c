@@ -25,6 +25,6 @@ int main(int argc, char **argv) {
     Server_waitForClients(server);
     
     while(true){
-        // while(threads running);      
+        Server_waitForGoodAnswers(server);     
     }
 }

@@ -9,4 +9,5 @@ TO DO
 -----
 * Control question and answer length in client
 * Manage spaces for question and answer
-* Create mega structure with void*
+* Create mega structure with void* + dispatcher
+* Server end game if everyone send bad response

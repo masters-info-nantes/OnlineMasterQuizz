@@ -17,3 +17,4 @@ Boucle jusqu'à la fin de la partie
 Limitations
 -------------
 * Max players per game: 10
+* A player can't send multiple answers
