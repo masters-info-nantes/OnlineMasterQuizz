@@ -134,16 +134,20 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 }
 
 void Server_electPlayer(Server* server){
-
     int electedID = rand() % (server->connectedPlayers - 1);
 
     for(int i = 0; i < server->connectedPlayers; i++){
         Player* currentPlayer = server->players[i];
-        bool elected = (i == electedID) ? true : false;
+        bool* elected = (bool*) malloc(sizeof(bool));
+        *elected = (i == electedID) ? true : false;
 
-        printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (elected) ? "" : " not");
+        printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (*elected) ? "" : " not");
     
-        void* threadParams[3] = { currentPlayer, server, &elected };
+        void** threadParams = (void**) calloc(3, sizeof(void*));
+        threadParams[0] = currentPlayer;
+        threadParams[1] = server;
+        threadParams[2] = elected;
+
         int threadCreated = pthread_create(&server->clientsThread[i], 
                                            NULL, Player_sendELEC,
                                            (void*)threadParams
@@ -155,8 +159,9 @@ void Server_electPlayer(Server* server){
             perror(message);        
             exit(1);
         }
-        sleep(1); // See to fix troubles with variables allocations !!!!!!!
     }
+
+    Server_waitForDEFQ(server, server->players[electedID]);
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
@@ -215,6 +220,8 @@ void Server_sendASKQtoAll(Server* server, Player* player, Question* question){
 }
 
 void Server_waitForPNUM(Server* server, Player* player){
+
+    printf(">> Wait for PNUM from #%d...\n", player->playerID + 1);
     DataType_pnum pnum;
 
     int readSize = -1;
@@ -230,16 +237,23 @@ void Server_waitForPNUM(Server* server, Player* player){
     printf("> PNUM set to %d\n", pnum.numberOfPlayers);
 }
 
-    ///////////////////////////
-    // For mocking reason!!! //
-    ///////////////////////////
 void Server_waitForDEFQ(Server* server,Player* player){
-        DataType_defq defq;
-    if(read(player->socketID, &defq, sizeof(defq)) > 0){
-        printf("Question recieved!\n");
-        printf("%s \n",defq.question);
-        printf("%s \n",defq.answer);
+    printf("> Wait for DEFQ from #%d...\n", player->playerID + 1);
+    DataType_defq defq;
+    
+    int readSize = -1;
+    while((readSize = read(player->socketID, &defq, sizeof(defq))) == 0);
+
+    if(readSize < 0){
+        char message[500];
+        sprintf(message, "DEFQ received is malformed\n");
+        perror(message);
+        exit(0);
     }
+
+    printf("> DEFQ received from #%d:\n", player->playerID);
+    printf(">  * Question: \"%s\"\n", defq.question);
+    printf(">  * Answer: \"%s\"\n", defq.answer);
 }
 void Server_waitForASKQ(Server* server,Player* player){
 

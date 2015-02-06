@@ -27,7 +27,7 @@ void* Player_sendELEC(void* params){
     void** paramList = (void**) params;
     Player* player = (Player*) paramList[0];
     Server* server = (Server*) paramList[1];
-    bool elected = *((bool*)paramList[2]);
+    bool elected = *((bool*) paramList[2]);
 
     Server_sendELEC(server, player, elected);
 
@@ -37,6 +37,9 @@ void* Player_sendELEC(void* params){
         Server_sendASKQtoAll(server);
     }
 */
+    free(paramList[2]);
+    free(params);
+
     return NULL;
 }
 
