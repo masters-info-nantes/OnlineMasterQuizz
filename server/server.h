@@ -15,6 +15,7 @@
 #define MAX_PLAYERS 5
 #define HOSTNAME_MAX_LENGTH 256
 #define QUEUE_MAX_LENGTH 5
+#define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
 typedef struct sockaddr sockaddr;
 typedef struct hostent hostent;

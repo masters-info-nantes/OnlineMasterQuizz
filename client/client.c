@@ -63,9 +63,12 @@ void Client_waitForPNUM(Client* client){
         if(pnum.numberOfPlayers==1)
         {
             printf("You are the first player! \n");
-            printf("How many players do you want for this game? \n");
-            int number;
-            scanf("%d",&number);
+            printf("How many players do you want for this game? (2 to 10) \n");
+            int number = 0;
+            while(number<2||number>10)
+            {
+                scanf("%d",&number);
+            }
             Client_sendPNUM(client,number);
         }
         else

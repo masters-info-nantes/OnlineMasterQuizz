@@ -171,6 +171,7 @@ void Server_electPlayer(Server* server){
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
+    printf("> He has a good answer! \n");
     // Stop all threads except caller
     // Use thread Player_sendRESP(params);
 }
@@ -317,8 +318,14 @@ void Server_waitForANSW(Server* server, Player* player){
         exit(0);
     }
 
-    printf("> ANSW received from #%d:\n", player->playerID);
+    printf("> ANSW received from #%d:\n", player->playerID+1);
     printf(">  \"%s\"\n", answ.answer);
+    int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);
+    printf("> The answer has a distance of: %d \n",result);
+    if(result<=2)
+    {
+        Server_notifyGoodANSW(server,player);
+    }
 }
 
 void Server_waitForGoodAnswers(Server* server){
@@ -327,48 +334,21 @@ void Server_waitForGoodAnswers(Server* server){
     }
 }
 
-int levenshteinDistance (char word1[256],char word2[256])
+int Server_levenshteinDistance (char word1[256],char word2[256])
 {
-    int len1=256,len2=256;
-    int matrix[len1 + 1][len2 + 1];
-    int i;
-    for (i = 0; i <= len1; i++) {
-        matrix[i][0] = i;
-    }
-    for (i = 0; i <= len2; i++) {
-        matrix[0][i] = i;
-    }
-    for (i = 1; i <= len1; i++) {
-        int j;
-        char c1;
-
-        c1 = word1[i-1];
-        for (j = 1; j <= len2; j++) {
-            char c2;
-
-            c2 = word2[j-1];
-            if (c1 == c2) {
-                matrix[i][j] = matrix[i-1][j-1];
-            }
-            else {
-                int delete;
-                int insert;
-                int substitute;
-                int minimum;
-
-                delete = matrix[i-1][j] + 1;
-                insert = matrix[i][j-1] + 1;
-                substitute = matrix[i-1][j-1] + 1;
-                minimum = delete;
-                if (insert < minimum) {
-                    minimum = insert;
-                }
-                if (substitute < minimum) {
-                    minimum = substitute;
-                }
-                matrix[i][j] = minimum;
-            }
+    unsigned int s1len, s2len, x, y, lastdiag, olddiag;
+    s1len = strlen(word1);
+    s2len = strlen(word2);
+    unsigned int column[s1len+1];
+    for (y = 1; y <= s1len; y++)
+        column[y] = y;
+    for (x = 1; x <= s2len; x++) {
+        column[0] = x;
+        for (y = 1, lastdiag = x-1; y <= s1len; y++) {
+            olddiag = column[y];
+            column[y] = MIN3(column[y] + 1, column[y-1] + 1, lastdiag + (word1[y-1] == word2[x-1] ? 0 : 1));
+            lastdiag = olddiag;
         }
     }
-    return matrix[len1][len2];
+    return(column[s1len]);
 }
