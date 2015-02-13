@@ -65,9 +65,11 @@ void Client_waitForPNUM(Client* client){
             printf("You are the first player! \n");
             printf("How many players do you want for this game? (2 to 10) \n");
             int number = 0;
+            char numtext[256];
             while(number<2||number>10)
             {
-                scanf("%d",&number);
+                fgets(numtext,sizeof(numtext),stdin);
+                number = atoi(numtext);
             }
             Client_sendPNUM(client,number);
         }
@@ -91,10 +93,8 @@ void Client_sendPNUM(Client* client, int playerCount)
 }
 void Client_sendDEFQ(Client* client, Question* question){
     DataType_defq defq;
-    //defq.question = question->text;
     strcpy(defq.question,question->text);
     strcpy(defq.answer,question->goodAnswer);
-    //defq.answer = question->goodAnswer;
     if ((write(client->socketID, &defq, sizeof(defq))) > 0) {
         printf("Your question has been sent! \n");
         Client_waitForRESP(client);
@@ -120,9 +120,9 @@ void Client_waitForELEC(Client* client){
             printf("You are elected to choose the question! \n");
             printf("What's your question? \n");
             Question question;
-            scanf("%s",question.text);
+            fgets(question.text,sizeof(question.text),stdin);
             printf("What's the correct answer? \n");
-            scanf("%s",question.goodAnswer);
+            fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
             Client_sendDEFQ(client,&question);
         }
         else
@@ -140,7 +140,7 @@ void Client_waitForASKQ(Client* client){
         printf("Question: %s \n",askq.question);
         printf("Your Answer: ");
         char answer[256];
-        scanf("%s",answer);
+        fgets(answer,sizeof(answer),stdin);
         Client_sendANSW(client,answer);
     }
 }

@@ -24,19 +24,18 @@ int main(int argc, char **argv) {
     
     Client_waitForPLID(client);  
 
-/*
+    /*
     Client_waitForPNUM(client);
     Client_waitForELEC(client);
-
     if(elected){
         Client_sendDEFQ(client, question);
     }
     else {
         Client_waitForASKQ(client);
-        Client_waitForRESP(client); 
-
-        // Thread terminated if waitForRESP ends
-        Client_sendANSW(client, answer);        
+        Client_sendANSW(client, answer); //Mettre dans un thread 
+        Client_waitForRESP(client); //Si autre joueur répond avant lui, on coupe le thread ci-dessus
+        
+              
     }
 */
 
