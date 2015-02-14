@@ -44,114 +44,208 @@ bool Client_run(Client* client, char* serverName, int serverPort){
     }
     printf("[Client/Run] Connection sucessfull\n\n");
     
+    Client_runReceiveThread(client);
     return true;
 }
 
-void Client_waitForPLID(Client* client){
-    DataType_plid plid;
+void Client_runReceiveThread(Client* client){
+    void* threadParams[1] = { client };
 
-    if(read(client->socketID, &plid, sizeof(plid)) > 0){
-        printf("PlayerID %u\n", plid.playerId); 
-        Client_waitForPNUM(client);
-    }  
+    // Create thread dedicated to the new client
+    int threadCreated = pthread_create(client->clientThread, 
+                                       NULL, Client_threadReceive,
+                                       (void*)threadParams
+    );
+
+    if(threadCreated){
+        perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
+        exit(1);
+    }
+
 }
 
-void Client_waitForPNUM(Client* client){
-    DataType_pnum pnum;
+void Client_send(Client* client, int type, void* data){
 
-    if(read(client->socketID, &pnum, sizeof(pnum)) > 0){
-        if(pnum.numberOfPlayers==1)
-        {
-            printf("You are the first player! \n");
-            printf("How many players do you want for this game? (2 to 10) \n");
-            int number = 0;
-            char numtext[256];
-            while(number<2||number>10)
-            {
-                fgets(numtext,sizeof(numtext),stdin);
-                number = atoi(numtext);
+    // First trame: notify data type
+    DataType typeNotif = { type };
+    if(write(client->socketID, &typeNotif, sizeof(typeNotif)) <= 0){
+        perror("[Client/send] Cannot send type notif");
+        exit(0);
+    }
+
+    // Second trame: data
+    switch(typeNotif.type){
+        case DATATYPE_PNUM: {
+            DataType_pnum pnum = *((DataType_pnum*)data);
+
+            if(write(client->socketID, &pnum, sizeof(pnum)) <= 0){
+                perror("[Client/send] Cannot send data");
+                exit(0);
             }
-            Client_sendPNUM(client,number);
         }
-        else
+        break;   
+
+         case DATATYPE_DEFQ: {
+            DataType_defq defq = *((DataType_defq*)data);
+
+            if(write(client->socketID, &defq, sizeof(defq)) <= 0){
+                perror("[Client/send] Cannot send data");
+                exit(0);
+            }
+        }
+        break; 
+
+        case DATATYPE_ANSW: {
+            DataType_answ answ = *((DataType_answ*)data);
+
+            if(write(client->socketID, &answ, sizeof(answ)) <= 0){
+                perror("[Client/send] Cannot send data");
+                exit(0);
+            }
+        }
+        break;                                                                
+    }    
+}
+
+void Client_receive(Client* client){
+    DataType typeNotif;
+    if(read(client->socketID, &typeNotif, sizeof(typeNotif)) > 0){
+        //printf("Trame of type %d received\n", typeNotif.type);
+
+        switch(typeNotif.type){
+            case DATATYPE_PLID: {
+                DataType_plid plid;
+                if(read(client->socketID, &plid, sizeof(plid)) > 0){
+                    Client_waitForPLID(client, plid);
+                }
+            }
+            break;
+
+            case DATATYPE_PNUM: {
+                DataType_pnum pnum;
+                if(read(client->socketID, &pnum, sizeof(pnum)) > 0){
+                    Client_waitForPNUM(client, pnum);
+                }
+            }
+            break;
+
+            case DATATYPE_ELEC: {
+                DataType_elec elec;
+                if(read(client->socketID, &elec, sizeof(elec)) > 0){
+                    Client_waitForELEC(client, elec);
+                }
+            }
+            break;
+
+            case DATATYPE_ASKQ: {
+                DataType_askq askq;
+                if(read(client->socketID, &askq, sizeof(askq)) > 0){
+                    Client_waitForASKQ(client, askq);
+                }
+            }
+            break;
+
+            case DATATYPE_RESP: {
+                DataType_resp resp;
+                if(read(client->socketID, &resp, sizeof(resp)) > 0){
+                    Client_waitForRESP(client, resp);
+                }
+            }
+            break;                                               
+        }        
+    }     
+}
+
+void* Client_threadReceive(void* params){
+    void** paramList = (void**) params;
+    Client* client = (Client*) paramList[0];
+
+    while(true){
+        Client_receive(client);
+    }
+
+    return NULL;
+}
+
+/***************************  Function for each request type ****************************/
+void Client_waitForPLID(Client* client, DataType_plid plid){
+    printf("PlayerID %u\n", plid.playerId); 
+}
+
+void Client_waitForPNUM(Client* client, DataType_pnum pnum){
+    if(pnum.numberOfPlayers == 1)
+    {
+        printf("You are the first player! \n");
+        printf("How many players do you want for this game? (2 to 10) \n");
+
+        int number = 0;
+        char numtext[256];
+
+        while(number<2||number>10)
         {
-            Client_waitForELEC(client);
-        }     
-    }  
+            fgets(numtext,sizeof(numtext),stdin);
+            number = atoi(numtext);
+        }
+
+        Client_sendPNUM(client,number);
+    }
 }
 
 void Client_sendPNUM(Client* client, int playerCount)
 {
-    DataType_pnum pnum;
-    pnum.numberOfPlayers=playerCount;
-    if ((write(client->socketID, &pnum, sizeof(pnum))) > 0) {
-        printf("number of players sent \n");
-        printf("waiting for other players to connect... \n");
-        Client_waitForELEC(client);
-    }
-    
+    DataType_pnum pnum = { DATATYPE_PNUM, playerCount };
+    Client_send(client, DATATYPE_PNUM, &pnum);    
 }
+
 void Client_sendDEFQ(Client* client, Question* question){
     DataType_defq defq;
+
+    //defq.question = question->text;
+    defq.type = DATATYPE_DEFQ;
     strcpy(defq.question,question->text);
     strcpy(defq.answer,question->goodAnswer);
-    if ((write(client->socketID, &defq, sizeof(defq))) > 0) {
-        printf("Your question has been sent! \n");
-        Client_waitForRESP(client);
-    }
+    //defq.answer = question->goodAnswer;
+
+    Client_send(client, DATATYPE_DEFQ, &defq);    
+    printf("Your question has been sent! \n");
 }
 
 void Client_sendANSW(Client* client, char answer[256])
 {
     DataType_answ answ;
+    answ.type = DATATYPE_ANSW;
     strcpy(answ.answer,answer);
-    if ((write(client->socketID, &answ, sizeof(answ))) > 0) {
-            printf("Answer sent!\n");
-        Client_waitForRESP(client);
-    }
+
+    Client_send(client, DATATYPE_ANSW, &answ);    
+    printf("Answer sent!\n");
 }
 
-void Client_waitForELEC(Client* client){
-    DataType_elec elec;
-
-    if(read(client->socketID, &elec, sizeof(elec)) > 0){
-        if(elec.elected==1)
-        {
-            printf("You are elected to choose the question! \n");
-            printf("What's your question? \n");
-            Question question;
-            fgets(question.text,sizeof(question.text),stdin);
-            printf("What's the correct answer? \n");
-            fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
-            Client_sendDEFQ(client,&question);
-        }
-        else
-        {
-            Client_waitForASKQ(client);
-        }     
-    } 
+void Client_waitForELEC(Client* client, DataType_elec elec){
+    if(elec.elected==1)
+    {
+        printf("You are elected to choose the question! \n");
+        printf("What's your question? \n");
+        Question question;
+        fgets(question.text,sizeof(question.text),stdin);
+        printf("What's the correct answer? \n");
+        fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
+        Client_sendDEFQ(client,&question);
+    }    
 }
 
-void Client_waitForASKQ(Client* client){
-    printf("Wait for question...\n");
-    DataType_askq askq;
+void Client_waitForASKQ(Client* client, DataType_askq askq){
+    printf("Question: %s \n",askq.question);
+    printf("Your Answer: ");
 
-    if(read(client->socketID, &askq, sizeof(askq)) > 0){
-        printf("Question: %s \n",askq.question);
-        printf("Your Answer: ");
-        char answer[256];
-        fgets(answer,sizeof(answer),stdin);
-        Client_sendANSW(client,answer);
-    }
+    char answer[256];
+    fgets(answer,sizeof(answer),stdin);
+
+    Client_sendANSW(client,answer);
 }
 
-void Client_waitForRESP(Client* client){
+void Client_waitForRESP(Client* client, DataType_resp resp){
     printf("Waiting for other players to answer...\n");
-    DataType_resp resp;
 
-    if(read(client->socketID, &resp, sizeof(resp)) > 0){
-        printf("Good answer: %s \n",resp.answer);
-        printf("Your points: %d \n",resp.score);
-        Client_waitForELEC(client);
-    }
+    printf("Good answer: %s \n",resp.answer);
+    printf("Your points: %d \n",resp.score);
 }

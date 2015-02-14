@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "datatype.h"
 #include "question.h"
@@ -22,19 +23,25 @@ typedef struct _Client Client;
 struct _Client {
 	int socketID;
 	sockaddr_in* socketInfos;
+	pthread_t* clientThread;	
 };
 
 Client* Client_create();
 bool Client_run(Client* client, char* serverName, int serverPort);
+void Client_runReceiveThread(Client* client);
+
+void Client_send(Client* client, int type, void* data);
+void Client_receive(Client* client);
+void* Client_threadReceive(void* params);
 
 void Client_sendDEFQ(Client* client, Question* question); // After elec, send question if elec = 1
 void Client_sendANSW(Client* client, char answer[256]); // After askq, send answer if not elected
 void Client_sendPNUM(Client* client, int playersCount);  // If first player, choose how many player in the game
 
-void Client_waitForPLID(Client* client); // Wait player identifier
-void Client_waitForPNUM(Client* client);  // Wait to set number of players (if first)
-void Client_waitForELEC(Client* client); // After plid, wait for asking question
-void Client_waitForASKQ(Client* client); // After elec, wait for question from server if elec = 0
-void Client_waitForRESP(Client* client); // After askq or answ, wait answer from server
+void Client_waitForPLID(Client* client, DataType_plid plid); // Wait player identifier
+void Client_waitForPNUM(Client* client, DataType_pnum pnum);  // Wait to set number of players (if first)
+void Client_waitForELEC(Client* client, DataType_elec elec); // After plid, wait for asking question
+void Client_waitForASKQ(Client* client, DataType_askq askq); // After elec, wait for question from server if elec = 0
+void Client_waitForRESP(Client* client, DataType_resp resp); // After askq or answ, wait answer from server
 
 #endif

@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
         perror("[Main] Unable to start connexion");
         exit(1);
     }
-    
-    Client_waitForPLID(client);  
+
+    while(true);
 
     /*
     Client_waitForPNUM(client);

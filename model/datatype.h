@@ -3,11 +3,25 @@
 
 #define MAX_CHAR_LENGTH 256
 
+#define DATATYPE_PLID 0
+#define DATATYPE_PNUM 1
+#define DATATYPE_ELEC 2
+#define DATATYPE_DEFQ 3
+#define DATATYPE_ASKQ 4
+#define DATATYPE_ANSW 5
+#define DATATYPE_RESP 6
+
+typedef struct _DataType DataType;
+struct _DataType {
+	unsigned int type;
+};
+
 // Server send player identifier to client
 //	 - player id: 4
 typedef struct _DataType_plid DataType_plid;
 struct _DataType_plid
 {
+   unsigned int type;
    unsigned int playerId;  
 };
 
@@ -17,6 +31,7 @@ struct _DataType_plid
 typedef struct _DataType_pnum DataType_pnum;
 struct _DataType_pnum
 {
+   unsigned int type;	
    unsigned int numberOfPlayers;  
 };
 
@@ -25,6 +40,7 @@ struct _DataType_pnum
 typedef struct _DataType_elec DataType_elec;
 struct _DataType_elec
 {
+   unsigned int type;	
    bool elected;  
 };
 
@@ -34,6 +50,7 @@ struct _DataType_elec
 typedef struct _DataType_defq DataType_defq;
 struct _DataType_defq
 {
+   unsigned int type;	
    char question[MAX_CHAR_LENGTH];
    char answer[MAX_CHAR_LENGTH];
 };
@@ -43,6 +60,7 @@ struct _DataType_defq
 typedef struct _DataType_askq DataType_askq;
 struct _DataType_askq
 {
+   unsigned int type;	
    char question[MAX_CHAR_LENGTH];
 };
 
@@ -51,6 +69,7 @@ struct _DataType_askq
 typedef struct _DataType_answ DataType_answ;
 struct _DataType_answ
 {
+   unsigned int type;	
    char answer[MAX_CHAR_LENGTH]; 
 };
 
@@ -60,6 +79,7 @@ struct _DataType_answ
 typedef struct _DataType_resp DataType_resp;
 struct _DataType_resp
 {
+   unsigned int type;	
    char answer[MAX_CHAR_LENGTH];
    unsigned int score;
 };

@@ -122,7 +122,7 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 
     // Create thread dedicated to the new client
     int threadCreated = pthread_create(&server->clientsThread[server->connectedPlayers], 
-                                       NULL, Player_sendPLID,
+                                       NULL, Player_receive,
                                        (void*)threadParams
     );
 
@@ -131,11 +131,16 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
         exit(1);
     }
 
+    printf("\n[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
+    Player_printClientInfos(player);  
+
     server->players[server->connectedPlayers] = player;
     server->connectedPlayers++;
 
-    printf("\n[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
-    Player_printClientInfos(player);  
+    Server_sendPLID(server, player);
+
+    bool isFirstClient = (player->playerID == 0) ? true : false;
+    Server_sendPNUM(server, player, isFirstClient);
 }
 
 void Server_electPlayer(Server* server){
@@ -144,30 +149,16 @@ void Server_electPlayer(Server* server){
     for(int i = 0; i < server->connectedPlayers; i++){
         Player* currentPlayer = server->players[i];
 
+        bool elected = false;
         if(i == electedID){
             server->electedPlayer = server->players[electedID];
+            elected = true;
         }
 
         // printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (i == electedID) ? "" : " not");
-    
-        void** threadParams = (void**) calloc(2, sizeof(void*));
-        threadParams[0] = currentPlayer;
-        threadParams[1] = server;
-
-        int threadCreated = pthread_create(&server->clientsThread[i], 
-                                           NULL, Player_sendELEC,
-                                           (void*)threadParams
-        );
-
-        if(threadCreated){
-            char message[500];
-            sprintf(message, "[Server/ElectPlayer] Cannot create thread for client election #%d\n", currentPlayer->playerID + 1);
-            perror(message);        
-            exit(1);
-        }
+        Server_sendELEC(server, currentPlayer, elected);
     }
-
-    Server_waitForDEFQ(server);
+    //printf("sa\n");
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
@@ -176,43 +167,118 @@ void Server_notifyGoodANSW(Server* server, Player* player){
     // Use thread Player_sendRESP(params);
 }
 
-void Server_sendPLID(Server* server, Player* player){
-    DataType_plid plid = { player->playerID + 1 }; 
-
-    if(write(player->socketID, &plid, sizeof(plid)) <= 0){
+void Server_send(Server* server, Player* player, int type, void* data){
+    // First trame: notify data type
+    DataType typeNotif = { type };
+    if(write(player->socketID, &typeNotif, sizeof(typeNotif)) <= 0){
         char message[500];
-        sprintf(message, "[Server/SendPLID] Cannot send plid to player #%d", player->playerID + 1);
+        sprintf(message, "[Server/send] Cannot send type notif to #%d", player->playerID + 1);
         perror(message);
         exit(0);
     }
-     
+
+    // Second trame: data
+    switch(typeNotif.type){
+        case DATATYPE_PLID: {
+            DataType_plid plid = *((DataType_plid*)data);
+
+            if(write(player->socketID, &plid, sizeof(plid)) <= 0){
+                char message[500];
+                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                perror(message);
+                exit(0);
+            }
+        }
+        break;
+
+        case DATATYPE_PNUM: {
+            DataType_pnum pnum = *((DataType_pnum*)data);
+
+            if(write(player->socketID, &pnum, sizeof(pnum)) <= 0){
+                char message[500];
+                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                perror(message);
+                exit(0);
+            }
+        }
+        break; 
+
+        case DATATYPE_ELEC: {
+            DataType_elec elec = *((DataType_elec*)data);
+
+            if(write(player->socketID, &elec, sizeof(elec)) <= 0){
+                char message[500];
+                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                perror(message);
+                exit(0);
+            }
+        }
+        break;
+
+        case DATATYPE_RESP: {
+            DataType_resp resp = *((DataType_resp*)data);
+
+            if(write(player->socketID, &resp, sizeof(resp)) <= 0){
+                char message[500];
+                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                perror(message);
+                exit(0);
+            }
+        }
+        break;                                                           
+    }  
+}
+
+void Server_receive(Server* server, Player* player){
+    DataType typeNotif;
+    if(read(player->socketID, &typeNotif, sizeof(typeNotif)) > 0){
+
+        switch(typeNotif.type){
+
+            case DATATYPE_PNUM: {
+                DataType_pnum pnum;
+                if(read(player->socketID, &pnum, sizeof(pnum)) > 0){
+                    Server_waitForPNUM(server, pnum);
+                }
+            }
+            break;
+
+            case DATATYPE_DEFQ: {
+                DataType_defq defq;
+                if(read(player->socketID, &defq, sizeof(defq)) > 0){
+                    Server_waitForDEFQ(server, defq);                   
+                }
+            }
+            break;
+
+            case DATATYPE_ANSW: {
+                DataType_answ answ;
+                if(read(player->socketID, &answ, sizeof(answ)) > 0){
+                    Server_waitForANSW(server, player, answ);
+                }
+            }
+            break;                                                
+        }        
+    } 
+}
+
+/***************************  Function for each request type ****************************/
+void Server_sendPLID(Server* server, Player* player){
+    DataType_plid plid = { DATATYPE_PLID, player->playerID + 1 }; 
+    Server_send(server, player, DATATYPE_PLID, &plid);     
     printf("> PLID sent to player #%d\n", player->playerID + 1);
 }
 
 void Server_sendPNUM(Server* server, Player* player, bool allowed){
-    DataType_pnum pnum = { allowed }; 
-
-    if(write(player->socketID, &pnum, sizeof(pnum)) <= 0){
-        char message[500];
-        sprintf(message, "[Server/SendPNUM] Cannot send pnum to player #%d", player->playerID + 1);
-        perror(message);
-        exit(0);
-    }
-     
-    printf("> PNUM %s sent to player #%d\n", (allowed) ? "authorization" : "not authorized", player->playerID + 1);
+    DataType_pnum pnum = { DATATYPE_PNUM, allowed};
+    Server_send(server, player, DATATYPE_PNUM, &pnum);     
+    printf("> PNUM %s sent to player #%d\n", (pnum.numberOfPlayers == 1) ? "authorization" : "not authorized", player->playerID + 1);
 }
 
 void Server_sendELEC(Server* server, Player* player, bool elected)
 {    
-    DataType_elec elec = { elected };
-
-    if(write(player->socketID, &elec, sizeof(elec)) <= 0){
-        char message[500];
-        sprintf(message, "[Server/SendELEC] Cannot send elec to player #%d", player->playerID + 1);
-        perror(message);
-        exit(0);
-    }
-
+    DataType_elec elec = { DATATYPE_ELEC, elected };
+    Server_send(server, player, DATATYPE_ELEC, &elec);
     printf("> Player #%d has%s been elected to ask the question\n", player->playerID + 1, (elected) ? "" : " not");
 }
 
@@ -228,70 +294,29 @@ void Server_sendASKQtoAll(Server* server){
             continue;
         }
 
-        void** threadParams = (void**) calloc(2, sizeof(void*));
-        threadParams[0] = currentPlayer;
-        threadParams[1] = server;
-
-        int threadCreated = pthread_create(&server->clientsThread[i], 
-                                           NULL, Player_sendASKQ,
-                                           (void*)threadParams
-        );
-
-        if(threadCreated){
-            char message[500];
-            sprintf(message, "[Server/ElectPlayer] Cannot create thread for client send question #%d\n", currentPlayer->playerID + 1);
-            perror(message);        
-            exit(1);
-        }
+        Server_sendASKQ(server, currentPlayer);
     }
 }
 
 void Server_sendASKQ(Server* server, Player* player){
     DataType_askq askq;
+    askq.type = DATATYPE_ASKQ;    
     strcpy(askq.question, server->currentQuestion->text);
 
-    if(write(player->socketID, &askq, sizeof(askq)) <= 0){
-        char message[500];
-        sprintf(message, "[Server/SendELEC] Cannot send question to player #%d", player->playerID + 1);
-        perror(message);
-        exit(0);
-    }
+    Server_send(server, player, DATATYPE_ASKQ, &askq);
 
     printf("> Question sent to player #%d\n", player->playerID + 1);
 }
 
-void Server_waitForPNUM(Server* server, Player* player){
-
-    printf(">> Wait for PNUM from #%d...\n", player->playerID + 1);
-    DataType_pnum pnum;
-
-    int readSize = -1;
-    while((readSize = read(player->socketID, &pnum, sizeof(pnum))) == 0);
-
-    if(readSize < 0){
-        char message[500];
-        sprintf(message, "PNUM received is malformed\n");
-        perror(message);
-        exit(0);
-    }
+void Server_waitForPNUM(Server* server, DataType_pnum pnum){
+//    printf(">> Wait for PNUM from #%d...\n", player->playerID + 1);
 
     server->maxPlayers = pnum.numberOfPlayers;
     printf("> PNUM set to %d\n", server->maxPlayers);
 }
 
-void Server_waitForDEFQ(Server* server){
+void Server_waitForDEFQ(Server* server, DataType_defq defq){
     printf("> Wait for DEFQ from #%d...\n", server->electedPlayer->playerID + 1);
-    DataType_defq defq;
-    
-    int readSize = -1;
-    while((readSize = read(server->electedPlayer->socketID, &defq, sizeof(defq))) == 0);
-
-    if(readSize < 0){
-        char message[500];
-        sprintf(message, "DEFQ received is malformed\n");
-        perror(message);
-        exit(0);
-    }
 
     server->currentQuestion = (Question*) malloc(sizeof(Question));
     strcpy(server->currentQuestion->text, defq.question);
@@ -304,20 +329,7 @@ void Server_waitForDEFQ(Server* server){
     Server_sendASKQtoAll(server);
 }
 
-void Server_waitForANSW(Server* server, Player* player){
-    printf("> Wait for ANSW from #%d...\n", player->playerID + 1);
-    DataType_answ answ;
-    
-    int readSize = -1;
-    while((readSize = read(player->socketID, &answ, sizeof(answ))) == 0);
-
-    if(readSize < 0){
-        char message[500];
-        sprintf(message, "ANSW received is malformed\n");
-        perror(message);
-        exit(0);
-    }
-
+void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
     printf("> ANSW received from #%d:\n", player->playerID+1);
     printf(">  \"%s\"\n", answ.answer);
     int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);

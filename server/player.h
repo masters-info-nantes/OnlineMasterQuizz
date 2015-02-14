@@ -21,11 +21,7 @@ struct _Player {
 #include "server.h"
 
 // Keep void* func(void*) for thread function
-void* Player_sendPLID(void* params);
-void* Player_sendELEC(void* params);
-void* Player_sendASKQ(void* params);
-void* Player_sendRESP(void* params);
-
 void Player_printClientInfos(Player* player);
+void* Player_receive(void* params);
 
 #endif

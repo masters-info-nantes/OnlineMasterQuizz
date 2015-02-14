@@ -42,6 +42,9 @@ void Server_electPlayer(Server* server);
 void Server_notifyGoodANSW(Server* server, Player* player);
 void Server_waitForGoodAnswers(Server* server);
 
+void Server_send(Server* server, Player* player, int type, void* data);
+void Server_receive(Server* server, Player* player);
+
 void Server_sendPLID(Server* server, Player* player);  // Player to send id (contained in structure)
 void Server_sendPNUM(Server* server, Player* player, bool allowed); // Player allowed to set number of players
 void Server_sendELEC(Server* server, Player* player, bool elected);  // Player elec (send also to other)
@@ -49,9 +52,9 @@ void Server_sendRESP(Server* server, Player* player, int answerID); // Send resp
 void Server_sendASKQ(Server* server, Player* player);
 void Server_sendASKQtoAll(Server* server); // Send question to all players
 
-void Server_waitForPNUM(Server* server, Player* player); 
-void Server_waitForDEFQ(Server* server); // After elec, wait for the question
-void Server_waitForANSW(Server* server, Player* player); // After ques, wait for player answer
+void Server_waitForPNUM(Server* server, DataType_pnum pnum); 
+void Server_waitForDEFQ(Server* server, DataType_defq defq); // After elec, wait for the question
+void Server_waitForANSW(Server* server, Player* player, DataType_answ answ); // After ques, wait for player answer
 
 int Server_levenshteinDistance(char word1[256],char word2[256]);
 
