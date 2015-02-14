@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     }
 
     Server_waitForClients(server);
-    
+
     while(true){
         Server_waitForGoodAnswers(server);     
     }

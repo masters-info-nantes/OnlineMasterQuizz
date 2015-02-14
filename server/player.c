@@ -14,5 +14,6 @@ void* Player_receive(void* params){
         Server_receive(server, player);
     }
 
+    free(params);
     return NULL;
 }

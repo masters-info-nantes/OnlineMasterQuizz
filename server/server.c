@@ -83,6 +83,7 @@ bool Server_run(Server* server, int port){
 }
 
 void Server_waitForClients(Server* server){
+    
     sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
   
@@ -118,7 +119,9 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     player->playerID = server->connectedPlayers; 
     player->socketInfos = clientInfos;
 
-    void* threadParams[2] = {player, server};
+    void** threadParams = (void**) calloc(2, sizeof(void*));
+    threadParams[0] = player;
+    threadParams[1] = server;
 
     // Create thread dedicated to the new client
     int threadCreated = pthread_create(&server->clientsThread[server->connectedPlayers], 
@@ -158,7 +161,6 @@ void Server_electPlayer(Server* server){
         // printf(">> Player #%d has%s been elected to ask the question\n", currentPlayer->playerID + 1, (i == electedID) ? "" : " not");
         Server_sendELEC(server, currentPlayer, elected);
     }
-    //printf("sa\n");
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
@@ -168,6 +170,7 @@ void Server_notifyGoodANSW(Server* server, Player* player){
 }
 
 void Server_send(Server* server, Player* player, int type, void* data){
+
     // First trame: notify data type
     DataType typeNotif = { type };
     if(write(player->socketID, &typeNotif, sizeof(typeNotif)) <= 0){
@@ -215,6 +218,18 @@ void Server_send(Server* server, Player* player, int type, void* data){
         }
         break;
 
+        case DATATYPE_ASKQ: {
+            DataType_askq askq = *((DataType_askq*)data);
+
+            if(write(player->socketID, &askq, sizeof(askq)) <= 0){
+                char message[500];
+                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                perror(message);
+                exit(0);
+            }
+        }
+        break;
+
         case DATATYPE_RESP: {
             DataType_resp resp = *((DataType_resp*)data);
 
@@ -231,8 +246,8 @@ void Server_send(Server* server, Player* player, int type, void* data){
 
 void Server_receive(Server* server, Player* player){
     DataType typeNotif;
-    if(read(player->socketID, &typeNotif, sizeof(typeNotif)) > 0){
 
+    if(read(player->socketID, &typeNotif, sizeof(typeNotif)) > 0){
         switch(typeNotif.type){
 
             case DATATYPE_PNUM: {
@@ -260,6 +275,12 @@ void Server_receive(Server* server, Player* player){
             break;                                                
         }        
     } 
+}
+
+void Server_waitForGoodAnswers(Server* server){
+    for(int i = 0; i < server->connectedPlayers; i++){
+        pthread_join(server->clientsThread[i], NULL);
+    }
 }
 
 /***************************  Function for each request type ****************************/
@@ -309,15 +330,11 @@ void Server_sendASKQ(Server* server, Player* player){
 }
 
 void Server_waitForPNUM(Server* server, DataType_pnum pnum){
-//    printf(">> Wait for PNUM from #%d...\n", player->playerID + 1);
-
     server->maxPlayers = pnum.numberOfPlayers;
     printf("> PNUM set to %d\n", server->maxPlayers);
 }
 
 void Server_waitForDEFQ(Server* server, DataType_defq defq){
-    printf("> Wait for DEFQ from #%d...\n", server->electedPlayer->playerID + 1);
-
     server->currentQuestion = (Question*) malloc(sizeof(Question));
     strcpy(server->currentQuestion->text, defq.question);
     strcpy(server->currentQuestion->goodAnswer, defq.answer);
@@ -332,17 +349,12 @@ void Server_waitForDEFQ(Server* server, DataType_defq defq){
 void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
     printf("> ANSW received from #%d:\n", player->playerID+1);
     printf(">  \"%s\"\n", answ.answer);
+
     int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);
     printf("> The answer has a distance of: %d \n",result);
     if(result<=2)
     {
         Server_notifyGoodANSW(server,player);
-    }
-}
-
-void Server_waitForGoodAnswers(Server* server){
-    for(int i = 0; i < server->connectedPlayers; i++){
-        pthread_join(server->clientsThread[i], NULL);
     }
 }
 

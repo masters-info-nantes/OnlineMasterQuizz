@@ -61,7 +61,6 @@ void Client_runReceiveThread(Client* client){
         perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
         exit(1);
     }
-
 }
 
 void Client_send(Client* client, int type, void* data){
@@ -109,9 +108,8 @@ void Client_send(Client* client, int type, void* data){
 
 void Client_receive(Client* client){
     DataType typeNotif;
+    
     if(read(client->socketID, &typeNotif, sizeof(typeNotif)) > 0){
-        //printf("Trame of type %d received\n", typeNotif.type);
-
         switch(typeNotif.type){
             case DATATYPE_PLID: {
                 DataType_plid plid;
