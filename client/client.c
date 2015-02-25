@@ -7,7 +7,6 @@ Client* Client_create(){
 	if(client){
 		client->socketID = -1;
         client->socketInfos = (sockaddr_in*) malloc(sizeof(sockaddr_in));
-
         client->clientThread = (pthread_t*) malloc(sizeof(pthread_t));
         client->answerThread = (pthread_t*) malloc(sizeof(pthread_t));
         if(client->socketInfos == NULL){
@@ -160,6 +159,7 @@ void Client_receive(Client* client){
 void* Client_threadReceive(void* params){
     void** paramList = (void**) params;
     Client* client = (Client*) paramList[0];
+
     while(true){
         Client_receive(client);
     }
@@ -262,7 +262,7 @@ void Client_waitForASKQ(Client* client, DataType_askq askq){
 }
 
 void Client_waitForRESP(Client* client, DataType_resp resp){
-    pthread_exit(client->answerThread);
+    pthread_cancel(*client->answerThread);
 
     printf("Good answer: %s \n",resp.answer);
     printf("Your points: %d \n",resp.score);

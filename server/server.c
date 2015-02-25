@@ -7,6 +7,7 @@ Server* Server_create(){
 		server->socketID = -1;
 		server->connectedPlayers = 0;
         server->maxPlayers = 1;
+        server->nbAnswers = 0;
         server->electedPlayer = NULL;
 
 		server->players = calloc(MAX_PLAYERS, sizeof(Player*));
@@ -48,19 +49,6 @@ bool Server_run(Server* server, int port){
         perror("[Server/Run] Unable to create socket connexion\n");
         return false;
     }
-
-    // Set timeout options
-    /*
-    struct timeval timeout;      
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
-
-    if (setsockopt(server->socketID, SOL_SOCKET, SO_RCVTIMEO, 
-            (char *)&timeout, sizeof(timeout)) < 0){
-        perror("[Server/Run] Unable set timeout option for client socket\n");
-        return false;
-    }
-    */
 
     // Bind socket identifier with its informations
     if ((bind(server->socketID, (sockaddr*)(&socketInfos), sizeof(socketInfos))) < 0) {
@@ -156,12 +144,19 @@ void Server_electPlayer(Server* server){
     }
 }
 
-void Server_notifyGoodANSW(Server* server, Player* player){
-    printf("> Player #%d has the good answer\n", player->playerID);
+void Server_notifyANSW(Server* server, Player* player){
+    if(player != NULL){
+        printf("> Player #%d has the good answer\n", player->playerID);        
+    }
+    else {
+        printf("> Nobody found the good answer\n");
+    }
 
     for(int i = 0; i < server->connectedPlayers; i++){
         Player* currentPlayer = server->players[i];
-        player->score += (currentPlayer->playerID == player->playerID) ? 1 : 0;
+        if(player != NULL && currentPlayer->playerID == player->playerID){
+            player->score++;
+        }
         Server_sendRESP(server, currentPlayer);
     }
 }
@@ -276,7 +271,7 @@ void Server_receive(Server* server, Player* player){
 
 void Server_waitForGoodAnswers(Server* server){
     for(int i = 0; i < server->connectedPlayers; i++){
-        pthread_join(*(server->players[i]->waitingThread), NULL);
+        pthread_join(*(server->players[i]->waitingThread), NULL);        
     }
 }
 
@@ -293,8 +288,7 @@ void Server_sendPNUM(Server* server, Player* player, bool allowed){
     printf("> PNUM %s sent to player #%d\n", (pnum.numberOfPlayers == 1) ? "authorization" : "not authorized", player->playerID + 1);
 }
 
-void Server_sendELEC(Server* server, Player* player, bool elected)
-{    
+void Server_sendELEC(Server* server, Player* player, bool elected){
     DataType_elec elec = { DATATYPE_ELEC, elected };
     Server_send(server, player, DATATYPE_ELEC, &elec);
     printf("> Player #%d has%s been elected to ask the question\n", player->playerID + 1, (elected) ? "" : " not");
@@ -353,16 +347,20 @@ void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
     printf("> ANSW received from #%d:\n", player->playerID+1);
     printf(">  \"%s\"\n", answ.answer);
 
+    server->nbAnswers++;
+
     int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);
     printf("> The answer has a distance of: %d \n",result);
     if(result <= 2)
     {
-        Server_notifyGoodANSW(server,player);
+        Server_notifyANSW(server, player);
+    }
+    else if(server->nbAnswers >= server->connectedPlayers - 1){
+        Server_notifyANSW(server, NULL);
     }
 }
 
-int Server_levenshteinDistance (char word1[256],char word2[256])
-{
+int Server_levenshteinDistance (char word1[256],char word2[256]){
     unsigned int s1len, s2len, x, y, lastdiag, olddiag;
     s1len = strlen(word1);
     s2len = strlen(word2);

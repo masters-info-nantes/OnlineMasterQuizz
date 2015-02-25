@@ -21,6 +21,7 @@ typedef struct hostent hostent;
 
 typedef struct _Server Server;
 struct _Server {
+
 	int socketID;
 	Player** players;
 
@@ -29,6 +30,7 @@ struct _Server {
 
     int connectedPlayers;
     int maxPlayers;
+    int nbAnswers;
 };
 
 Server* Server_create();
@@ -36,7 +38,7 @@ bool Server_run(Server* server, int port);
 void Server_waitForClients(Server* server);
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos);
 void Server_electPlayer(Server* server);
-void Server_notifyGoodANSW(Server* server, Player* player);
+void Server_notifyANSW(Server* server, Player* player);
 void Server_waitForGoodAnswers(Server* server);
 
 void Server_send(Server* server, Player* player, int type, void* data);
