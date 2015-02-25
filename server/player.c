@@ -35,9 +35,10 @@ void* Player_receive(void* params){
     Player* player = (Player*) paramList[0];
     Server* server = (Server*) paramList[1];
 
-    while(true){
-        Server_receive(server, player);
-    }
+    while(Server_receive(server, player));
+
+    player->socketID = -1; // Can't check id thread terminated, so..
+    Server_notifyClientDisconnected(server, player);
 
     free(params);
     return NULL;

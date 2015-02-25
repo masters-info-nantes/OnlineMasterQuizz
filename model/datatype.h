@@ -10,6 +10,7 @@
 #define DATATYPE_ASKQ 4
 #define DATATYPE_ANSW 5
 #define DATATYPE_RESP 6
+#define DATATYPE_ENDG 7 // Game end
 
 typedef struct _DataType DataType;
 struct _DataType {
@@ -82,6 +83,13 @@ struct _DataType_resp
    unsigned int type;	
    char answer[MAX_CHAR_LENGTH];
    unsigned int score;
+};
+
+typedef struct _DataType_endg DataType_endg;
+struct _DataType_endg
+{
+   unsigned int type;
+   char reason[MAX_CHAR_LENGTH];
 };
 
 #endif

@@ -7,9 +7,24 @@ Client* Client_create(){
 	if(client){
 		client->socketID = -1;
         client->socketInfos = (sockaddr_in*) malloc(sizeof(sockaddr_in));
-        client->clientThread = (pthread_t*) malloc(sizeof(pthread_t));
-        client->answerThread = (pthread_t*) malloc(sizeof(pthread_t));
-        if(client->socketInfos == NULL){
+
+        if(client->socketInfos){
+            client->clientThread = (pthread_t*) malloc(sizeof(pthread_t));
+            if(client->clientThread){
+
+                client->answerThread = (pthread_t*) malloc(sizeof(pthread_t));
+                if(client->socketInfos == NULL){   
+                    free(client->socketInfos);             
+                    free(client->clientThread);
+                    free(client);
+                }
+            }
+            else {
+                free(client->socketInfos);
+                free(client);
+            }
+        }
+        else {
             free(client);
         }
 	}
@@ -61,7 +76,7 @@ void Client_runReceiveThread(Client* client){
     
     if(threadCreated){
         perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -70,8 +85,8 @@ void Client_send(Client* client, int type, void* data){
     // First trame: notify data type
     DataType typeNotif = { type };
     if(write(client->socketID, &typeNotif, sizeof(typeNotif)) <= 0){
-        perror("[Client/send] Cannot send type notif");
-        exit(0);
+        perror("[Client/send] Cannot send TYPE to server");
+        exit(EXIT_FAILURE);
     }
 
     // Second trame: data
@@ -80,8 +95,8 @@ void Client_send(Client* client, int type, void* data){
             DataType_pnum pnum = *((DataType_pnum*)data);
 
             if(write(client->socketID, &pnum, sizeof(pnum)) <= 0){
-                perror("[Client/send] Cannot send data");
-                exit(0);
+                perror("[Client/send] Cannot send PNUM to server");
+                exit(EXIT_FAILURE);
             }
         }
         break;   
@@ -90,8 +105,8 @@ void Client_send(Client* client, int type, void* data){
             DataType_defq defq = *((DataType_defq*)data);
 
             if(write(client->socketID, &defq, sizeof(defq)) <= 0){
-                perror("[Client/send] Cannot send data");
-                exit(0);
+                perror("[Client/send] Cannot send DEFQ to server");
+                exit(EXIT_FAILURE);
             }
         }
         break; 
@@ -100,8 +115,8 @@ void Client_send(Client* client, int type, void* data){
             DataType_answ answ = *((DataType_answ*)data);
 
             if(write(client->socketID, &answ, sizeof(answ)) <= 0){
-                perror("[Client/send] Cannot send data");
-                exit(0);
+                perror("[Client/send] Cannot send ANSW to server");
+                exit(EXIT_FAILURE);
             }
         }
         break;                                                                
@@ -151,7 +166,15 @@ void Client_receive(Client* client){
                     Client_waitForRESP(client, resp);
                 }
             }
-            break;                                               
+            break;   
+
+            case DATATYPE_ENDG: {
+                DataType_endg endg;
+                if(read(client->socketID, &endg, sizeof(endg)) > 0){
+                    Client_waitForENDG(client, endg);
+                }
+            }
+            break;                                                         
         }        
     }     
 }
@@ -164,6 +187,7 @@ void* Client_threadReceive(void* params){
         Client_receive(client);
     }
 
+    free(params);
     return NULL;
 }
 
@@ -240,6 +264,8 @@ void* Client_threadAnswer(void* params)
     fgets(answer,sizeof(answer),stdin);
     Client_sendANSW(client,answer);
     printf("Waiting for other players to answer...\n");
+
+    free(params);
     return NULL;
 }
 
@@ -257,13 +283,17 @@ void Client_waitForASKQ(Client* client, DataType_askq askq){
      
     if(threadCreated){
         perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
 void Client_waitForRESP(Client* client, DataType_resp resp){
     pthread_cancel(*client->answerThread);
 
-    printf("Good answer: %s \n",resp.answer);
-    printf("Your points: %d \n",resp.score);
+    printf("Good answer: %s\n",resp.answer);
+    printf("Your points: %d\n",resp.score);
+}
+
+void Client_waitForENDG(Client* client, DataType_endg endg){
+    printf("Game over, reason: %s\n", endg.reason);
 }

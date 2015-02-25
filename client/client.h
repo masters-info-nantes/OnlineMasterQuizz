@@ -50,5 +50,6 @@ void Client_waitForPNUM(Client* client, DataType_pnum pnum);  // Wait to set num
 void Client_waitForELEC(Client* client, DataType_elec elec); // After plid, wait for asking question
 void Client_waitForASKQ(Client* client, DataType_askq askq); // After elec, wait for question from server if elec = 0
 void Client_waitForRESP(Client* client, DataType_resp resp); // After askq or answ, wait answer from server
+void Client_waitForENDG(Client* client, DataType_endg endg); 
 
 #endif

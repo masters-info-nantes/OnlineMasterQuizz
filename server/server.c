@@ -6,6 +6,7 @@ Server* Server_create(){
 	if(server){
 		server->socketID = -1;
 		server->connectedPlayers = 0;
+        server->playersForTurn = 0;
         server->maxPlayers = 1;
         server->nbAnswers = 0;
         server->electedPlayer = NULL;
@@ -112,7 +113,7 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 
     if(threadCreated){
         perror("[Server/AddPlayer] Cannot create thread for new client\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     printf("\n[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
@@ -120,6 +121,7 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 
     server->players[server->connectedPlayers] = player;
     server->connectedPlayers++;
+    server->playersForTurn++;
 
     Server_sendPLID(server, player);
 
@@ -146,15 +148,22 @@ void Server_electPlayer(Server* server){
 
 void Server_notifyANSW(Server* server, Player* player){
     if(player != NULL){
-        printf("> Player #%d has the good answer\n", player->playerID);        
+        printf("> Player #%d has the good answer\n", player->playerID + 1);        
     }
     else {
         printf("> Nobody found the good answer\n");
     }
 
-    for(int i = 0; i < server->connectedPlayers; i++){
+    for(int i = 0; i < server->playersForTurn; i++){
         Player* currentPlayer = server->players[i];
-        if(player != NULL && currentPlayer->playerID == player->playerID){
+
+        if(currentPlayer->socketID == -1){
+            continue; // disconnected client
+        }
+
+        if(player != NULL 
+            && currentPlayer->playerID == player->playerID)
+        {
             player->score++;
         }
         Server_sendRESP(server, currentPlayer);
@@ -167,9 +176,9 @@ void Server_send(Server* server, Player* player, int type, void* data){
     DataType typeNotif = { type };
     if(write(player->socketID, &typeNotif, sizeof(typeNotif)) <= 0){
         char message[500];
-        sprintf(message, "[Server/send] Cannot send type notif to #%d", player->playerID + 1);
+        sprintf(message, "[Server/send] Cannot send type TYPE to #%d", player->playerID + 1);
         perror(message);
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     // Second trame: data
@@ -179,9 +188,9 @@ void Server_send(Server* server, Player* player, int type, void* data){
 
             if(write(player->socketID, &plid, sizeof(plid)) <= 0){
                 char message[500];
-                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                sprintf(message, "[Server/send] Cannot send PLID to #%d", player->playerID + 1);
                 perror(message);
-                exit(0);
+                exit(EXIT_FAILURE);
             }
         }
         break;
@@ -191,9 +200,9 @@ void Server_send(Server* server, Player* player, int type, void* data){
 
             if(write(player->socketID, &pnum, sizeof(pnum)) <= 0){
                 char message[500];
-                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                sprintf(message, "[Server/send] Cannot send PNUM to #%d", player->playerID + 1);
                 perror(message);
-                exit(0);
+                exit(EXIT_FAILURE);
             }
         }
         break; 
@@ -203,9 +212,9 @@ void Server_send(Server* server, Player* player, int type, void* data){
 
             if(write(player->socketID, &elec, sizeof(elec)) <= 0){
                 char message[500];
-                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                sprintf(message, "[Server/send] Cannot send ELEC to #%d", player->playerID + 1);
                 perror(message);
-                exit(0);
+                exit(EXIT_FAILURE);
             }
         }
         break;
@@ -215,9 +224,9 @@ void Server_send(Server* server, Player* player, int type, void* data){
 
             if(write(player->socketID, &askq, sizeof(askq)) <= 0){
                 char message[500];
-                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                sprintf(message, "[Server/send] Cannot send ASKQ to #%d", player->playerID + 1);
                 perror(message);
-                exit(0);
+                exit(EXIT_FAILURE);
             }
         }
         break;
@@ -227,24 +236,39 @@ void Server_send(Server* server, Player* player, int type, void* data){
 
             if(write(player->socketID, &resp, sizeof(resp)) <= 0){
                 char message[500];
-                sprintf(message, "[Server/send] Cannot send data to #%d", player->playerID + 1);
+                sprintf(message, "[Server/send] Cannot send RESP to #%d", player->playerID + 1);
                 perror(message);
-                exit(0);
+                exit(EXIT_FAILURE);
             }
         }
-        break;                                                           
+        break;    
+
+        case DATATYPE_ENDG: {
+            DataType_endg endg = *((DataType_endg*)data);
+
+            if(write(player->socketID, &endg, sizeof(endg)) <= 0){
+                char message[500];
+                sprintf(message, "[Server/send] Cannot send ENDG to #%d", player->playerID + 1);
+                perror(message);
+                exit(EXIT_FAILURE);
+            }
+        }
+        break; 
     }  
 }
 
-void Server_receive(Server* server, Player* player){
+bool Server_receive(Server* server, Player* player){
     DataType typeNotif;
 
-    if(read(player->socketID, &typeNotif, sizeof(typeNotif)) > 0){
+    int clientStatus = read(player->socketID, &typeNotif, sizeof(typeNotif));
+    if(clientStatus > 0){
         switch(typeNotif.type){
 
             case DATATYPE_PNUM: {
                 DataType_pnum pnum;
-                if(read(player->socketID, &pnum, sizeof(pnum)) > 0){
+                clientStatus = read(player->socketID, &pnum, sizeof(pnum));
+
+                if(clientStatus > 0){
                     Server_waitForPNUM(server, pnum);
                 }
             }
@@ -252,7 +276,9 @@ void Server_receive(Server* server, Player* player){
 
             case DATATYPE_DEFQ: {
                 DataType_defq defq;
-                if(read(player->socketID, &defq, sizeof(defq)) > 0){
+                clientStatus = read(player->socketID, &defq, sizeof(defq));
+
+                if(clientStatus > 0){
                     Server_waitForDEFQ(server, defq);                   
                 }
             }
@@ -260,18 +286,39 @@ void Server_receive(Server* server, Player* player){
 
             case DATATYPE_ANSW: {
                 DataType_answ answ;
-                if(read(player->socketID, &answ, sizeof(answ)) > 0){
+                clientStatus = read(player->socketID, &answ, sizeof(answ));
+
+                if(clientStatus > 0){
                     Server_waitForANSW(server, player, answ);
                 }
             }
             break;                                                
         }        
     } 
+
+    return clientStatus > 0;
 }
 
 void Server_waitForGoodAnswers(Server* server){
     for(int i = 0; i < server->connectedPlayers; i++){
         pthread_join(*(server->players[i]->waitingThread), NULL);        
+    }
+}
+
+void Server_notifyClientDisconnected(Server* server, Player* player){
+    printf("> Player #%d leave the game\n", player->playerID + 1);
+    server->connectedPlayers--;
+
+    if(server->connectedPlayers < 2){
+        for(int i = 0; i < server->playersForTurn; i++){
+            Player* currentPlayer = server->players[i];
+
+            if(currentPlayer->socketID == -1){
+                continue; // disconnected client
+            }
+
+            Server_sendENDG(server, currentPlayer);
+        }
     }
 }
 
@@ -326,6 +373,16 @@ void Server_sendASKQ(Server* server, Player* player){
     printf("> Question sent to player #%d\n", player->playerID + 1);
 }
 
+void Server_sendENDG(Server* server, Player* player){
+    DataType_endg endg;
+    endg.type = DATATYPE_ENDG;    
+    strcpy(endg.reason, "No enough players to continue the game");
+
+    Server_send(server, player, DATATYPE_ENDG, &endg);
+
+    printf("> ENDG sent to #%d\n", player->playerID + 1);
+}
+
 void Server_waitForPNUM(Server* server, DataType_pnum pnum){
     server->maxPlayers = pnum.numberOfPlayers;
     printf("> PNUM set to %d\n", server->maxPlayers);
@@ -351,8 +408,8 @@ void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
 
     int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);
     printf("> The answer has a distance of: %d \n",result);
-    if(result <= 2)
-    {
+
+    if(result <= 2){
         Server_notifyANSW(server, player);
     }
     else if(server->nbAnswers >= server->connectedPlayers - 1){
