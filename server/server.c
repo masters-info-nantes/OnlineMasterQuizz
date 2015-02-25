@@ -301,7 +301,11 @@ void Server_sendELEC(Server* server, Player* player, bool elected)
 }
 
 void Server_sendRESP(Server* server, Player* player){
-    DataType_resp resp = { DATATYPE_RESP, server->currentQuestion->goodAnswer, player->score };
+    DataType_resp resp;
+    resp.type = DATATYPE_RESP;
+    resp.score = player->score;    
+    strcpy(resp.answer, server->currentQuestion->goodAnswer);
+
     Server_send(server, player, DATATYPE_RESP, &resp);
     printf("> Send response to player #%d (has %d score)\n", player->playerID + 1, player->score);
 }

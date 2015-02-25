@@ -51,17 +51,16 @@ bool Client_run(Client* client, char* serverName, int serverPort){
 }
 
 void Client_runReceiveThread(Client* client){
-    void* threadParams[1] = { client };
-    printf("tentative création thread\n");
+    void** threadParams = (void**) calloc(1, sizeof(void*));
+    threadParams[0] = client;
+
     // Create thread dedicated to the new client
-    printf("%p\n",client);
-    printf("%p\n",client->clientThread);
     int threadCreated = pthread_create(client->clientThread, 
                                        NULL, Client_threadReceive,
                                        (void*)threadParams
     );
     
-    if(threadCreated!=0){
+    if(threadCreated){
         perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
         exit(1);
     }
@@ -112,7 +111,7 @@ void Client_send(Client* client, int type, void* data){
 
 void Client_receive(Client* client){
     DataType typeNotif;
-    
+
     if(read(client->socketID, &typeNotif, sizeof(typeNotif)) > 0){
         switch(typeNotif.type){
             case DATATYPE_PLID: {
@@ -201,17 +200,15 @@ void Client_sendPNUM(Client* client, int playerCount)
 void Client_sendDEFQ(Client* client, Question* question){
     DataType_defq defq;
 
-    //defq.question = question->text;
     defq.type = DATATYPE_DEFQ;
     strcpy(defq.question,question->text);
     strcpy(defq.answer,question->goodAnswer);
-    //defq.answer = question->goodAnswer;
 
     Client_send(client, DATATYPE_DEFQ, &defq);    
     printf("Your question has been sent! \n");
 }
 
-void Client_sendANSW(Client* client, char answer[256])
+void Client_sendANSW(Client* client, char* answer)
 {
     DataType_answ answ;
     answ.type = DATATYPE_ANSW;
@@ -237,24 +234,28 @@ void Client_waitForELEC(Client* client, DataType_elec elec){
 void* Client_threadAnswer(void* params)
 {
     void** paramList = (void**) params;
-    Client* client = (Client*) paramList[0];
+    Client* client = (Client*) paramList[0];   
     printf("Your Answer: ");
     char answer[256];
     fgets(answer,sizeof(answer),stdin);
     Client_sendANSW(client,answer);
     printf("Waiting for other players to answer...\n");
+    return NULL;
 }
 
 void Client_waitForASKQ(Client* client, DataType_askq askq){
     printf("Question: %s \n",askq.question);
-    void* threadParams[1] = { client };
+
+    void** threadParams = (void**) calloc(1, sizeof(void*));
+    threadParams[0] = client;
+
     // Création de thread
     int threadCreated = pthread_create(client->answerThread, 
                                        NULL, Client_threadAnswer,
                                        (void*)threadParams
     );
-    
-    if(threadCreated!=0){
+     
+    if(threadCreated){
         perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
         exit(1);
     }
@@ -262,8 +263,6 @@ void Client_waitForASKQ(Client* client, DataType_askq askq){
 
 void Client_waitForRESP(Client* client, DataType_resp resp){
     pthread_exit(client->answerThread);
-    //va killer le thread
-    
 
     printf("Good answer: %s \n",resp.answer);
     printf("Your points: %d \n",resp.score);

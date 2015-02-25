@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 #define SOCKET_BUFFER_SIZE 256
 

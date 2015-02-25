@@ -7,7 +7,8 @@ To make it work, compile and run the server.c on a computer, then you can compil
 
 TO DO
 -----
-* Control question and answer length in client
-* Manage spaces for question and answer
-* Create mega structure with void* + dispatcher
 * Server end game if everyone send bad response
+* Server loop
+* Client which ask question don't print response
+* Client manage server log out
+* Server manager client log out
