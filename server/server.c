@@ -10,15 +10,7 @@ Server* Server_create(){
         server->electedPlayer = NULL;
 
 		server->players = calloc(MAX_PLAYERS, sizeof(Player*));
-		if(server->players){
-			server->clientsThread = calloc(MAX_PLAYERS, sizeof(pthread_t));
-
-			if(server->clientsThread == NULL){
-				free(server->players);
-				free(server);
-			}
-		}
-		else {
+		if(server->players == NULL){			
 			free(server);
 		}
 	}
@@ -32,14 +24,14 @@ bool Server_run(Server* server, int port){
 
     // Get local host name 
     char* serverName[HOSTNAME_MAX_LENGTH + 1] = { 0 };
-    gethostname((char*)serverName, HOSTNAME_MAX_LENGTH);       
-    
+    gethostname((char*)serverName, HOSTNAME_MAX_LENGTH); 
+  
     // Get server informations from name
-    hostent* serverInfos = gethostbyname((char*)serverName);
+    hostent* serverInfos = gethostbyname((char*)serverName);   
     if (serverInfos == NULL) {
         perror("[Server/Run] Cannot find server from given hostname\n");
         return false;
-    }        
+    }
 
     // Fill socket infos with server infos
     sockaddr_in socketInfos;
@@ -86,7 +78,7 @@ void Server_waitForClients(Server* server){
     
     sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
-  
+
     while(server->connectedPlayers < server->maxPlayers) {
     
         clientInfosSize = sizeof(clientInfos);
@@ -110,7 +102,8 @@ void Server_waitForClients(Server* server){
 }
 
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
-    Player* player = malloc(sizeof(Player));
+
+    Player* player = Player_create();
     if(player == NULL){
     	return;
     }
@@ -124,7 +117,7 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     threadParams[1] = server;
 
     // Create thread dedicated to the new client
-    int threadCreated = pthread_create(&server->clientsThread[server->connectedPlayers], 
+    int threadCreated = pthread_create(player->waitingThread, 
                                        NULL, Player_receive,
                                        (void*)threadParams
     );
@@ -164,9 +157,13 @@ void Server_electPlayer(Server* server){
 }
 
 void Server_notifyGoodANSW(Server* server, Player* player){
-    printf("> He has a good answer! \n");
-    // Stop all threads except caller
-    // Use thread Player_sendRESP(params);
+    printf("> Player #%d has the good answer\n", player->playerID);
+
+    for(int i = 0; i < server->connectedPlayers; i++){
+        Player* currentPlayer = server->players[i];
+        player->score += (currentPlayer->playerID == player->playerID) ? 1 : 0;
+        Server_sendRESP(server, currentPlayer);
+    }
 }
 
 void Server_send(Server* server, Player* player, int type, void* data){
@@ -279,7 +276,7 @@ void Server_receive(Server* server, Player* player){
 
 void Server_waitForGoodAnswers(Server* server){
     for(int i = 0; i < server->connectedPlayers; i++){
-        pthread_join(server->clientsThread[i], NULL);
+        pthread_join(*(server->players[i]->waitingThread), NULL);
     }
 }
 
@@ -303,8 +300,10 @@ void Server_sendELEC(Server* server, Player* player, bool elected)
     printf("> Player #%d has%s been elected to ask the question\n", player->playerID + 1, (elected) ? "" : " not");
 }
 
-void Server_sendRESP(Server* server, Player* player, int answerID){
-
+void Server_sendRESP(Server* server, Player* player){
+    DataType_resp resp = { DATATYPE_RESP, server->currentQuestion->goodAnswer, player->score };
+    Server_send(server, player, DATATYPE_RESP, &resp);
+    printf("> Send response to player #%d (has %d score)\n", player->playerID + 1, player->score);
 }
 
 void Server_sendASKQtoAll(Server* server){
@@ -352,7 +351,7 @@ void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
 
     int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);
     printf("> The answer has a distance of: %d \n",result);
-    if(result<=2)
+    if(result <= 2)
     {
         Server_notifyGoodANSW(server,player);
     }

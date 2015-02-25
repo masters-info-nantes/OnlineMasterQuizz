@@ -15,13 +15,19 @@ typedef struct _Player Player;
 struct _Player {
     int socketID;
     int playerID;
+
     sockaddr_in* socketInfos;
+    pthread_t* waitingThread;
+
+    unsigned int score;
 };
 
 #include "server.h"
 
-// Keep void* func(void*) for thread function
+Player* Player_create();
 void Player_printClientInfos(Player* player);
+
+// Keep void* func(void*) for thread function
 void* Player_receive(void* params);
 
 #endif
