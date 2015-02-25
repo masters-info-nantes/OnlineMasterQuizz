@@ -28,10 +28,14 @@ struct _Client {
 
 Client* Client_create();
 bool Client_run(Client* client, char* serverName, int serverPort);
+
+// Create and run the thread which waits for receiving incoming data
 void Client_runReceiveThread(Client* client);
 
 void Client_send(Client* client, int type, void* data);
-void Client_receive(Client* client);
+void Client_receive(Client* client); // Handle incoming requests
+
+// Thread which waits for receiving incoming data
 void* Client_threadReceive(void* params);
 
 void Client_sendDEFQ(Client* client, Question* question); // After elec, send question if elec = 1

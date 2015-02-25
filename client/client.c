@@ -7,6 +7,7 @@ Client* Client_create(){
 	if(client){
 		client->socketID = -1;
         client->socketInfos = (sockaddr_in*) malloc(sizeof(sockaddr_in));
+        client->clientThread = (pthread_t*) malloc(sizeof(pthread_t));
 
         if(client->socketInfos == NULL){
             free(client);
