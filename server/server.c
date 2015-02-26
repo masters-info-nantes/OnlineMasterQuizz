@@ -172,6 +172,11 @@ void Server_notifyANSW(Server* server, Player* player){
 
 void Server_send(Server* server, Player* player, int type, void* data){
 
+    // If the player is disconnected, don't send
+    if(player->socketID == -1){
+        return;
+    }
+
     // First trame: notify data type
     DataType typeNotif = { type };
     if(write(player->socketID, &typeNotif, sizeof(typeNotif)) <= 0){
@@ -309,14 +314,9 @@ void Server_notifyClientDisconnected(Server* server, Player* player){
     printf("> Player #%d leave the game\n", player->playerID + 1);
     server->connectedPlayers--;
 
-    if(server->connectedPlayers < 2){
+    if(server->connectedPlayers < 2 && server->electedPlayer->socketID != -1){
         for(int i = 0; i < server->playersForTurn; i++){
             Player* currentPlayer = server->players[i];
-
-            if(currentPlayer->socketID == -1){
-                continue; // disconnected client
-            }
-
             Server_sendENDG(server, currentPlayer);
         }
     }

@@ -21,7 +21,6 @@ typedef struct hostent hostent;
 
 typedef struct _Server Server;
 struct _Server {
-
 	int socketID;
 	Player** players;
 

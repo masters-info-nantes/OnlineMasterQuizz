@@ -18,3 +18,6 @@ Limitations
 -------------
 * Max players per game: 10
 * A player can't send multiple answers
+* If no player left in the game, quit
+* No players can join during a game
+* If the data trame doesn't match to first trame, process anyway

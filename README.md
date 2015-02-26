@@ -10,4 +10,3 @@ TO DO
 * Server loop
 * Client which ask question don't print response
 * Client manage server log out
-* Server manager client log out
