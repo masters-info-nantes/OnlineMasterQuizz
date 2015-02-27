@@ -4,12 +4,11 @@ Server* Server_create(){
 	Server* server = (Server*) malloc(sizeof(Server));
 	
 	if(server){
+        Server_reset(server);
 		server->socketID = -1;
 		server->connectedPlayers = 0;
         server->playersForTurn = 0;
         server->maxPlayers = 1;
-        server->nbAnswers = 0;
-        server->electedPlayer = NULL;
 
 		server->players = calloc(MAX_PLAYERS, sizeof(Player*));
 		if(server->players == NULL){			
@@ -20,6 +19,11 @@ Server* Server_create(){
     srand(time(NULL)); // For real random
 	
 	return server;
+}
+
+void Server_reset(Server* server){
+    server->electedPlayer = NULL;
+    server->nbAnswers = 0;  
 }
 
 bool Server_run(Server* server, int port){
@@ -168,6 +172,8 @@ void Server_notifyANSW(Server* server, Player* player){
         }
         Server_sendRESP(server, currentPlayer);
     }
+
+    Server_reset(server);
 }
 
 void Server_send(Server* server, Player* player, int type, void* data){
@@ -304,10 +310,8 @@ bool Server_receive(Server* server, Player* player){
     return clientStatus > 0;
 }
 
-void Server_waitForGoodAnswers(Server* server){
-    for(int i = 0; i < server->connectedPlayers; i++){
-        pthread_join(*(server->players[i]->waitingThread), NULL);        
-    }
+void Server_waitForEndGame(Server* server){
+    while(server->electedPlayer != NULL);
 }
 
 void Server_notifyClientDisconnected(Server* server, Player* player){

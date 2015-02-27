@@ -16,8 +16,9 @@ Boucle jusqu'à la fin de la partie
 
 Limitations
 -------------
-* Max players per game: 10
-* A player can't send multiple answers
-* If no player left in the game, quit
-* No players can join during a game
-* If the data trame doesn't match to first trame, process anyway
+* Nombre de joueurs max: 10
+* Un joueur ne peut répondre qu'une fois
+* La partie se termine s'il n'y a plus de joueurs connectés
+* Des clients ne peuvent pas rejoindre une partie en cours
+
+* Si la trame de data ne correspond pas à la première trame, le traitement se fait quand même sur les données envoyées

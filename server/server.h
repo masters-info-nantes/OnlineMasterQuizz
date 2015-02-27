@@ -34,12 +34,14 @@ struct _Server {
 };
 
 Server* Server_create();
+void Server_reset(Server* server);
+
 bool Server_run(Server* server, int port);
 void Server_waitForClients(Server* server);
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos);
 void Server_electPlayer(Server* server);
 void Server_notifyANSW(Server* server, Player* player);
-void Server_waitForGoodAnswers(Server* server);
+void Server_waitForEndGame(Server* server);
 void Server_notifyClientDisconnected(Server* server, Player* player);
 
 void Server_send(Server* server, Player* player, int type, void* data);

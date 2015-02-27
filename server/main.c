@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
     Server_waitForClients(server);
 
     while(true){
-        Server_waitForGoodAnswers(server);     
+        Server_waitForEndGame(server);
+        Server_electPlayer(server);
     }
 }

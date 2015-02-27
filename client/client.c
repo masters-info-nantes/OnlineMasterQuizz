@@ -231,6 +231,7 @@ void Client_sendDEFQ(Client* client, Question* question){
     Client_send(client, DATATYPE_DEFQ, &defq);  
     client->elected=true;
     printf("Your question has been sent! \n");
+    printf("Waiting for other players answers... \n");    
 }
 
 void Client_sendANSW(Client* client, char* answer)
