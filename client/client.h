@@ -25,6 +25,7 @@ struct _Client {
 	sockaddr_in* socketInfos;
 	pthread_t* clientThread;
     pthread_t* answerThread;
+    bool       elected;
 };
 
 Client* Client_create();

@@ -7,7 +7,7 @@ Client* Client_create(){
 	if(client){
 		client->socketID = -1;
         client->socketInfos = (sockaddr_in*) malloc(sizeof(sockaddr_in));
-
+        client->elected=false;
         if(client->socketInfos){
             client->clientThread = (pthread_t*) malloc(sizeof(pthread_t));
             if(client->clientThread){
@@ -210,9 +210,9 @@ void Client_waitForPNUM(Client* client, DataType_pnum pnum){
             fgets(numtext,sizeof(numtext),stdin);
             number = atoi(numtext);
         }
-
         Client_sendPNUM(client,number);
     }
+    printf("Waiting for other players...\n");
 }
 
 void Client_sendPNUM(Client* client, int playerCount)
@@ -228,7 +228,8 @@ void Client_sendDEFQ(Client* client, Question* question){
     strcpy(defq.question,question->text);
     strcpy(defq.answer,question->goodAnswer);
 
-    Client_send(client, DATATYPE_DEFQ, &defq);    
+    Client_send(client, DATATYPE_DEFQ, &defq);  
+    client->elected=true;
     printf("Your question has been sent! \n");
 }
 
@@ -253,6 +254,10 @@ void Client_waitForELEC(Client* client, DataType_elec elec){
         fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
         Client_sendDEFQ(client,&question);
     }    
+    else
+    {
+        printf("Waiting for a question...\n");
+    }
 }
 
 void* Client_threadAnswer(void* params)
@@ -289,9 +294,16 @@ void Client_waitForASKQ(Client* client, DataType_askq askq){
 
 void Client_waitForRESP(Client* client, DataType_resp resp){
     pthread_cancel(*client->answerThread);
-
-    printf("Good answer: %s\n",resp.answer);
-    printf("Your points: %d\n",resp.score);
+    if(!client->elected)
+    {
+        printf("Good answer: %s\n",resp.answer);
+        printf("Your points: %d\n",resp.score);
+    }
+    else
+    {
+        printf("The turn is over!\n");
+        client->elected=false;
+    }
 }
 
 void Client_waitForENDG(Client* client, DataType_endg endg){

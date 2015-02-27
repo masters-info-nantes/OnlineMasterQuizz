@@ -8,5 +8,4 @@ To make it work, compile and run the server.c on a computer, then you can compil
 TO DO
 -----
 * Server loop
-* Client which ask question don't print response
 * Client manage server log out
