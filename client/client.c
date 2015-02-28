@@ -125,12 +125,13 @@ void Client_send(Client* client, int type, void* data){
 
 void Client_receive(Client* client){
     DataType typeNotif;
-
-    if(read(client->socketID, &typeNotif, sizeof(typeNotif)) > 0){
+    int serverStatus = read(client->socketID, &typeNotif, sizeof(typeNotif));
+    if(serverStatus > 0){
         switch(typeNotif.type){
             case DATATYPE_PLID: {
                 DataType_plid plid;
-                if(read(client->socketID, &plid, sizeof(plid)) > 0){
+                serverStatus = read(client->socketID, &plid, sizeof(plid));
+                if(serverStatus > 0){
                     Client_waitForPLID(client, plid);
                 }
             }
@@ -138,7 +139,8 @@ void Client_receive(Client* client){
 
             case DATATYPE_PNUM: {
                 DataType_pnum pnum;
-                if(read(client->socketID, &pnum, sizeof(pnum)) > 0){
+                serverStatus = read(client->socketID, &pnum, sizeof(pnum));
+                if(serverStatus > 0){
                     Client_waitForPNUM(client, pnum);
                 }
             }
@@ -146,7 +148,8 @@ void Client_receive(Client* client){
 
             case DATATYPE_ELEC: {
                 DataType_elec elec;
-                if(read(client->socketID, &elec, sizeof(elec)) > 0){
+                serverStatus = read(client->socketID, &elec, sizeof(elec));
+                if(serverStatus > 0){
                     Client_waitForELEC(client, elec);
                 }
             }
@@ -154,7 +157,8 @@ void Client_receive(Client* client){
 
             case DATATYPE_ASKQ: {
                 DataType_askq askq;
-                if(read(client->socketID, &askq, sizeof(askq)) > 0){
+                serverStatus = read(client->socketID, &askq, sizeof(askq));
+                if( serverStatus > 0){
                     Client_waitForASKQ(client, askq);
                 }
             }
@@ -162,7 +166,8 @@ void Client_receive(Client* client){
 
             case DATATYPE_RESP: {
                 DataType_resp resp;
-                if(read(client->socketID, &resp, sizeof(resp)) > 0){
+                serverStatus = read(client->socketID, &resp, sizeof(resp));
+                if(serverStatus > 0){
                     Client_waitForRESP(client, resp);
                 }
             }
@@ -170,13 +175,21 @@ void Client_receive(Client* client){
 
             case DATATYPE_ENDG: {
                 DataType_endg endg;
-                if(read(client->socketID, &endg, sizeof(endg)) > 0){
+                serverStatus = read(client->socketID, &endg, sizeof(endg));
+                if(serverStatus > 0){
                     Client_waitForENDG(client, endg);
                 }
             }
             break;                                                         
         }        
-    }     
+    }
+    else if(serverStatus == 0)
+    {
+        printf("Vous avez été déconnecté du serveur.\n");
+        printf("Le jeu va maintenant s'arrêter.\n");
+        pthread_cancel(*(client->clientThread));
+    }
+    
 }
 
 void* Client_threadReceive(void* params){

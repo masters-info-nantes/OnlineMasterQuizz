@@ -7,4 +7,4 @@ To make it work, compile and run the server.c on a computer, then you can compil
 
 TO DO
 -----
-* Client manage server log out
+* Nothing
