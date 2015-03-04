@@ -13,9 +13,12 @@ Client* Client_create(){
             if(client->clientThread){
 
                 client->answerThread = (pthread_t*) malloc(sizeof(pthread_t));
+                client->questionThread = (pthread_t*) malloc(sizeof(pthread_t));
                 if(client->socketInfos == NULL){   
                     free(client->socketInfos);             
                     free(client->clientThread);
+                    free(client->answerThread);
+                    free(client->questionThread);
                     free(client);
                 }
             }
@@ -257,16 +260,38 @@ void Client_sendANSW(Client* client, char* answer)
     printf("Answer sent!\n");
 }
 
+void* Client_threadQuestion(void* params)
+{
+    void** paramList = (void**) params;
+    Client* client = (Client*) paramList[0];   
+    printf("What's your question?\n");
+	Question question;
+	fgets(question.text,sizeof(question.text),stdin);
+	printf("What's the correct answer? \n");
+	fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
+	Client_sendDEFQ(client,&question);
+
+    free(params);
+    return NULL;
+}
+
 void Client_waitForELEC(Client* client, DataType_elec elec){
     if(elec.elected==1)
     {
         printf("You are elected to choose the question! \n");
-        printf("What's your question? \n");
-        Question question;
-        fgets(question.text,sizeof(question.text),stdin);
-        printf("What's the correct answer? \n");
-        fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
-        Client_sendDEFQ(client,&question);
+		void** threadParams = (void**) calloc(1, sizeof(void*));
+		threadParams[0] = client;
+
+		// Création de thread
+		int threadCreated = pthread_create(client->questionThread, 
+                                       NULL, Client_threadQuestion,
+                                       (void*)threadParams
+		);
+     
+		if(threadCreated){
+			perror("[Client/RunReceiveThread] Cannot create thread for question\n");
+			exit(EXIT_FAILURE);
+		}
     }    
     else
     {
@@ -301,7 +326,7 @@ void Client_waitForASKQ(Client* client, DataType_askq askq){
     );
      
     if(threadCreated){
-        perror("[Client/RunReceiveThread] Cannot create thread for new client\n");
+        perror("[Client/RunReceiveThread] Cannot create thread for answer\n");
         exit(EXIT_FAILURE);
     }
 }

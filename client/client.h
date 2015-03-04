@@ -25,6 +25,7 @@ struct _Client {
 	sockaddr_in* socketInfos;
 	pthread_t* clientThread;
     pthread_t* answerThread;
+    pthread_t* questionThread;
     bool       elected;
 };
 
@@ -41,6 +42,8 @@ void Client_receive(Client* client); // Handle incoming requests
 void* Client_threadReceive(void* params);
 // Thread which waits for player to send his answer
 void* Client_threadAnswer(void* params);
+// Thread which waits for player to send his question
+void* Client_threadQuestion(void* params);
 
 void Client_sendDEFQ(Client* client, Question* question); // After elec, send question if elec = 1
 void Client_sendANSW(Client* client, char answer[256]); // After askq, send answer if not elected
