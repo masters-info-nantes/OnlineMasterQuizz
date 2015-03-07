@@ -1,6 +1,9 @@
 #include "server.h"
 
+// Allocate memory for server structure
 Server* Server_create(){
+
+    // Allocate memory
 	Server* server = (Server*) malloc(sizeof(Server));
 	
 	if(server){
@@ -16,16 +19,19 @@ Server* Server_create(){
 		}
 	}
 
-    srand(time(NULL)); // For real random
+    // Initialize random value
+    srand(time(NULL));
 	
 	return server;
 }
 
+// Reset server values for next turn
 void Server_reset(Server* server){
     server->electedPlayer = NULL;
     server->nbAnswers = 0;  
 }
 
+// Initialize server configuration
 bool Server_run(Server* server, int port){
 
     // Get local host name 
@@ -67,11 +73,13 @@ bool Server_run(Server* server, int port){
     return true;
 }
 
+// Wait all clients before begining a new game
 void Server_waitForClients(Server* server){
     
     sockaddr_in* clientInfos = malloc(sizeof(sockaddr_in));
     socklen_t clientInfosSize = sizeof(clientInfos);
 
+    // While players are missing, wait new ones
     while(server->connectedPlayers < server->maxPlayers) {
     
         clientInfosSize = sizeof(clientInfos);
@@ -82,9 +90,10 @@ void Server_waitForClients(Server* server){
 		    exit(1);
 		}
 
+        // Add new player on server
 		Server_addPlayer(server, socketID, clientInfos);
 
-        // Wait for PNUM from the first player
+        // Wait for the first set number of players
         if(server->connectedPlayers == 1){
             while(server->maxPlayers == 1);
         }
@@ -94,8 +103,10 @@ void Server_waitForClients(Server* server){
     Server_electPlayer(server);
 }
 
+// Add a new player to the server
 void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
 
+    // Create player struct
     Player* player = Player_create();
     if(player == NULL){
     	return;
@@ -105,11 +116,12 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     player->playerID = server->connectedPlayers; 
     player->socketInfos = clientInfos;
 
+
+    // Create thread to listen new client
     void** threadParams = (void**) calloc(2, sizeof(void*));
     threadParams[0] = player;
     threadParams[1] = server;
 
-    // Create thread dedicated to the new client
     int threadCreated = pthread_create(player->waitingThread, 
                                        NULL, Player_receive,
                                        (void*)threadParams
@@ -123,19 +135,23 @@ void Server_addPlayer(Server* server, int socketID, sockaddr_in* clientInfos){
     printf("\n[Server/WaitForClients] New client connected #%d\n", server->connectedPlayers); 
     Player_printClientInfos(player);  
 
+    // Update server infos
     server->players[server->connectedPlayers] = player;
     server->connectedPlayers++;
     server->playersForTurn++;
 
+    // Send player id and ask for to set number of players (if first)
     Server_sendPLID(server, player);
 
     bool isFirstClient = (player->playerID == 0) ? true : false;
     Server_sendPNUM(server, player, isFirstClient);
 }
 
+// Elect a player to ask the question
 void Server_electPlayer(Server* server){
     int electedID = rand() % (server->connectedPlayers - 1);
 
+    // Send to all player if they has been elected or not
     for(int i = 0; i < server->connectedPlayers; i++){
         Player* currentPlayer = server->players[i];
 
@@ -150,6 +166,7 @@ void Server_electPlayer(Server* server){
     }
 }
 
+// Send turn result to all players
 void Server_notifyANSW(Server* server, Player* player){
     if(player != NULL){
         printf("> Player #%d has the good answer\n", player->playerID + 1);        
@@ -158,6 +175,7 @@ void Server_notifyANSW(Server* server, Player* player){
         printf("> Nobody found the good answer\n");
     }
 
+    // Send to all players
     for(int i = 0; i < server->playersForTurn; i++){
         Player* currentPlayer = server->players[i];
 
@@ -165,6 +183,7 @@ void Server_notifyANSW(Server* server, Player* player){
             continue; // disconnected client
         }
 
+        // Update winner score
         if(player != NULL 
             && currentPlayer->playerID == player->playerID)
         {
@@ -176,6 +195,7 @@ void Server_notifyANSW(Server* server, Player* player){
     Server_reset(server);
 }
 
+// Send a trame to a player
 void Server_send(Server* server, Player* player, int type, void* data){
 
     // If the player is disconnected, don't send
@@ -268,10 +288,14 @@ void Server_send(Server* server, Player* player, int type, void* data){
     }  
 }
 
+// Receive data from a player
 bool Server_receive(Server* server, Player* player){
     DataType typeNotif;
 
+    // Read next trame type
     int clientStatus = read(player->socketID, &typeNotif, sizeof(typeNotif));
+
+    // Wait for data trame
     if(clientStatus > 0){
         switch(typeNotif.type){
 
@@ -310,14 +334,17 @@ bool Server_receive(Server* server, Player* player){
     return clientStatus > 0;
 }
 
+// Blocks until the turn is not ended
 void Server_waitForEndGame(Server* server){
     while(server->electedPlayer != NULL);
 }
 
+// Called when a client has been disconnected
 void Server_notifyClientDisconnected(Server* server, Player* player){
     printf("> Player #%d leave the game\n", player->playerID + 1);
     server->connectedPlayers--;
 
+    // If the game can't go through, notify players for and game
     if(server->connectedPlayers < 2 && server->electedPlayer->socketID != -1){
         for(int i = 0; i < server->playersForTurn; i++){
             Player* currentPlayer = server->players[i];
@@ -327,24 +354,28 @@ void Server_notifyClientDisconnected(Server* server, Player* player){
 }
 
 /***************************  Function for each request type ****************************/
+// Send player identifier
 void Server_sendPLID(Server* server, Player* player){
     DataType_plid plid = { DATATYPE_PLID, player->playerID + 1 }; 
     Server_send(server, player, DATATYPE_PLID, &plid);     
     printf("> PLID sent to player #%d\n", player->playerID + 1);
 }
 
+// Ask a player to set number of players
 void Server_sendPNUM(Server* server, Player* player, bool allowed){
     DataType_pnum pnum = { DATATYPE_PNUM, allowed};
     Server_send(server, player, DATATYPE_PNUM, &pnum);     
     printf("> PNUM %s sent to player #%d\n", (pnum.numberOfPlayers == 1) ? "authorization" : "not authorized", player->playerID + 1);
 }
 
+// Notify a player if he has been elected or not
 void Server_sendELEC(Server* server, Player* player, bool elected){
     DataType_elec elec = { DATATYPE_ELEC, elected };
     Server_send(server, player, DATATYPE_ELEC, &elec);
     printf("> Player #%d has%s been elected to ask the question\n", player->playerID + 1, (elected) ? "" : " not");
 }
 
+// Send response to the question (and score) to a player
 void Server_sendRESP(Server* server, Player* player){
     DataType_resp resp;
     resp.type = DATATYPE_RESP;
@@ -355,10 +386,12 @@ void Server_sendRESP(Server* server, Player* player){
     printf("> Send response to player #%d (has %d score)\n", player->playerID + 1, player->score);
 }
 
+// Notify all players with the question (except elected)
 void Server_sendASKQtoAll(Server* server){
     for(int i = 0; i < server->connectedPlayers; i++){
         Player* currentPlayer = server->players[i];
         
+        // The player who asked the question is not notified
         if(currentPlayer->playerID == server->electedPlayer->playerID){
             continue;
         }
@@ -367,6 +400,7 @@ void Server_sendASKQtoAll(Server* server){
     }
 }
 
+// Send a question to a player
 void Server_sendASKQ(Server* server, Player* player){
     DataType_askq askq;
     askq.type = DATATYPE_ASKQ;    
@@ -377,6 +411,7 @@ void Server_sendASKQ(Server* server, Player* player){
     printf("> Question sent to player #%d\n", player->playerID + 1);
 }
 
+// Notify a player about turn end
 void Server_sendENDG(Server* server, Player* player){
     DataType_endg endg;
     endg.type = DATATYPE_ENDG;    
@@ -387,11 +422,13 @@ void Server_sendENDG(Server* server, Player* player){
     printf("> ENDG sent to #%d\n", player->playerID + 1);
 }
 
+// Set number of players
 void Server_waitForPNUM(Server* server, DataType_pnum pnum){
     server->maxPlayers = pnum.numberOfPlayers;
     printf("> PNUM set to %d\n", server->maxPlayers);
 }
 
+// Retrieve question and send it to players
 void Server_waitForDEFQ(Server* server, DataType_defq defq){
     server->currentQuestion = (Question*) malloc(sizeof(Question));
     strcpy(server->currentQuestion->text, defq.question);
@@ -404,15 +441,18 @@ void Server_waitForDEFQ(Server* server, DataType_defq defq){
     Server_sendASKQtoAll(server);
 }
 
+// Check a player answer
 void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
     printf("> ANSW received from #%d:\n", player->playerID+1);
     printf(">  \"%s\"\n", answ.answer);
 
     server->nbAnswers++;
 
+    // Decide if the answer is correct
     int result = Server_levenshteinDistance(answ.answer,server->currentQuestion->goodAnswer);
     printf("> The answer has a distance of: %d \n",result);
 
+    // Notify the player with the result
     if(result <= 2){
         Server_notifyANSW(server, player);
     }
@@ -421,6 +461,7 @@ void Server_waitForANSW(Server* server, Player* player, DataType_answ answ){
     }
 }
 
+// Compute the levenshtein distance between player answer and question answer
 int Server_levenshteinDistance (char word1[256],char word2[256]){
     unsigned int s1len, s2len, x, y, lastdiag, olddiag;
     s1len = strlen(word1);
