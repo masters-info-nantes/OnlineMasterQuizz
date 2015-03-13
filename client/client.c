@@ -126,10 +126,13 @@ void Client_send(Client* client, int type, void* data){
     }    
 }
 
+// Listen the server
 void Client_receive(Client* client){
     DataType typeNotif;
     int serverStatus = read(client->socketID, &typeNotif, sizeof(typeNotif));
+    // If the server is still up
     if(serverStatus > 0){
+        // Choosing what method to call according to the type of message recieved by the server
         switch(typeNotif.type){
             case DATATYPE_PLID: {
                 DataType_plid plid;
@@ -195,6 +198,7 @@ void Client_receive(Client* client){
     
 }
 
+// Thread which always read the socket for a server message
 void* Client_threadReceive(void* params){
     void** paramList = (void**) params;
     Client* client = (Client*) paramList[0];
@@ -213,7 +217,8 @@ void Client_waitForPLID(Client* client, DataType_plid plid){
 }
 
 void Client_waitForPNUM(Client* client, DataType_pnum pnum){
-    if(pnum.numberOfPlayers == 1)
+    // The first connected player choose the number of players for the game 
+    if(pnum.numberOfPlayers == 1) 
     {
         printf("You are the first player! \n");
         printf("How many players do you want for this game? (2 to 10) \n");
@@ -221,11 +226,14 @@ void Client_waitForPNUM(Client* client, DataType_pnum pnum){
         int number = 0;
         char numtext[256];
 
-        while(number<2||number>10)
+        // The number of player has to be between 2 and 10
+        while(number<2||number>10) 
         {
+            // Reading the number from the console line
             fgets(numtext,sizeof(numtext),stdin);
             number = atoi(numtext);
         }
+        //Sending the number to the server
         Client_sendPNUM(client,number);
     }
     printf("Waiting for other players...\n");
@@ -237,38 +245,49 @@ void Client_sendPNUM(Client* client, int playerCount)
     Client_send(client, DATATYPE_PNUM, &pnum);    
 }
 
-void Client_sendDEFQ(Client* client, Question* question){
+void Client_sendDEFQ(Client* client, Question* question)
+{
+    // The player who sent the question won't display it at the end of the game
+    client->elected=true;
+    
+    // Instantiation of the question structure
     DataType_defq defq;
-
     defq.type = DATATYPE_DEFQ;
     strcpy(defq.question,question->text);
     strcpy(defq.answer,question->goodAnswer);
 
-    Client_send(client, DATATYPE_DEFQ, &defq);  
-    client->elected=true;
+    // Sending the question
+    Client_send(client, DATATYPE_DEFQ, &defq);   
     printf("Your question has been sent! \n");
     printf("Waiting for other players answers... \n");    
 }
 
 void Client_sendANSW(Client* client, char* answer)
 {
+    // Instantiation of the answer structure
     DataType_answ answ;
     answ.type = DATATYPE_ANSW;
     strcpy(answ.answer,answer);
 
+    // Sending the answer
     Client_send(client, DATATYPE_ANSW, &answ);    
     printf("Answer sent!\n");
 }
 
 void* Client_threadQuestion(void* params)
 {
+    //Recuperation of the thread parameters
     void** paramList = (void**) params;
     Client* client = (Client*) paramList[0];   
+    
+    //Setting the question and the correct answer
     printf("What's your question?\n");
 	Question question;
 	fgets(question.text,sizeof(question.text),stdin);
 	printf("What's the correct answer? \n");
 	fgets(question.goodAnswer,sizeof(question.goodAnswer),stdin);
+    
+    //Sending it
 	Client_sendDEFQ(client,&question);
 
     free(params);
